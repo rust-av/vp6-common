@@ -1,6 +1,7 @@
 target
 Cargo.lock
 assets
-nihav-encoder
-nihav-player
-nihav-tool
+benchmarks/c-vp6/c-vp6
+benchmarks/rust-vp6/target/
+benchmarks/builds/
+vp6-bench.*

@@ -35,7 +35,6 @@ pub fn nihav_register_all_raw_demuxers(rd: &mut RegisteredRawDemuxers) {
 
 /// Registers all known encoders.
 pub fn nihav_register_all_encoders(re: &mut RegisteredEncoders) {
-    generic_register_all_encoders(re);
     duck_register_all_encoders(re);
 }
 

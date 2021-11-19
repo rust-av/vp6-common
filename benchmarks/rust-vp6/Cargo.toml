@@ -1,0 +1,12 @@
+[package]
+name = "rust-vp6"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+nihav_core = { path="../../nihav-core" }
+nihav_codec_support = { path="../../nihav-codec-support" }
+nihav_registry = { path="../../nihav-registry" }
+nihav_allstuff = { path="../../nihav-allstuff" }
