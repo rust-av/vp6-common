@@ -1,6 +1,6 @@
 #!/bin/sh
 
-RUNS=2
+RUNS=3
 
 hyperfine -r ${RUNS} \
     -L program c,rust \

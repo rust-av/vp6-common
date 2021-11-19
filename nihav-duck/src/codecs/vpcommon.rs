@@ -322,12 +322,15 @@ pub fn vp_put_block_dc(coeffs: &mut [i16; 64], bx: usize, by: usize, plane: usiz
 
 pub fn vp_add_block(coeffs: &mut [i16; 64], bx: usize, by: usize, plane: usize, frm: &mut NASimpleVideoFrame<u8>) {
     vp_idct(coeffs);
-    let mut off = frm.offset[plane] + bx * 8 + by * 8 * frm.stride[plane];
+    let stride = frm.stride[plane];
+    let mut off = frm.offset[plane] + bx * 8 + by * 8 * stride;
+    
     for y in 0..8 {
+        let frm_data = &mut frm.data[off..(off + 8)];
         for x in 0..8 {
-            frm.data[off + x] = (coeffs[x + y * 8] + i16::from(frm.data[off + x])).min(255).max(0) as u8;
+            frm_data[x] = (coeffs[x + y * 8] + i16::from(frm_data[x])) as u8;
         }
-        off += frm.stride[plane];
+        off += stride;
     }
 }
 

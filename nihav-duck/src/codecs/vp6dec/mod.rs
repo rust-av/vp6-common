@@ -343,7 +343,7 @@ impl VP56Parser for VP6BR {
         let dbuf = &mut dst.data[dst.offset[plane] + x + y * dstride..];
         if copy_mode {
             let src = &tmp_blk[2 * 16 + 2..];
-            for (dline, sline) in dbuf.chunks_mut(dst.stride[plane]).zip(src.chunks(16)).take(8) {
+            for (dline, sline) in dbuf.chunks_exact_mut(dst.stride[plane]).zip(src.chunks(16)).take(8) {
                 dline[..8].copy_from_slice(&sline[..8]);
             }
         } else if bicubic {

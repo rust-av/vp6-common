@@ -363,7 +363,7 @@ impl FrameEncoder {
                 MVSearchMode::Hexagon   => Box::new(HexSearch::new()),
             };
         let mut mb_pos = 0;
-        for (mb_y, row) in inter_mbs.chunks_mut(self.mb_w).enumerate() {
+        for (mb_y, row) in inter_mbs.chunks_exact_mut(self.mb_w).enumerate() {
             for (mb_x, mb) in row.iter_mut().enumerate() {
                 self.src_mbs[mb_pos].fill(&mut cur_blk);
 

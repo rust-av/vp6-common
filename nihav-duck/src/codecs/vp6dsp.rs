@@ -20,7 +20,7 @@ pub fn get_block(dst: &mut [u8], dstride: usize, src: NAVideoBufferRef<u8>, comp
         let sbuf: &[u8] = sdta.as_slice();
         let saddr = soff + ((sx - 2) as usize) + ((sy - 2) as usize) * sstride;
         let src = &sbuf[saddr..];
-        for (dline, sline) in dst.chunks_mut(dstride).zip(src.chunks(sstride)).take(12) {
+        for (dline, sline) in dst.chunks_exact_mut(dstride).zip(src.chunks(sstride)).take(12) {
             dline[..12].copy_from_slice(&sline[..12]);
         }
     }
@@ -98,14 +98,14 @@ pub fn mc_bilinear16(dst: &mut [u8], dstride: usize, src: &[u8], mx: u16, my: u1
 #[allow(clippy::trivially_copy_pass_by_ref)]
 pub fn mc_bicubic(dst: &mut [u8], dstride: usize, src: &[u8], mut soff: usize, sstride: usize, coeffs_w: &[i16; 4], coeffs_h: &[i16; 4]) {
     if coeffs_h[1] == 128 {
-        for dline in dst.chunks_mut(dstride).take(8) {
+        for dline in dst.chunks_exact_mut(dstride).take(8) {
             for i in 0..8 {
                 dline[i] = mc_filter!(bicubic; src, soff + i, 1, coeffs_w);
             }
             soff += sstride;
         }
     } else if coeffs_w[1] == 128 { // horizontal-only interpolation
-        for dline in dst.chunks_mut(dstride).take(8) {
+        for dline in dst.chunks_exact_mut(dstride).take(8) {
             for i in 0..8 {
                 dline[i] = mc_filter!(bicubic; src, soff + i, sstride, coeffs_h);
             }
@@ -114,14 +114,14 @@ pub fn mc_bicubic(dst: &mut [u8], dstride: usize, src: &[u8], mut soff: usize, s
     } else {
         let mut buf = [0u8; 16 * 11];
         soff -= sstride;
-        for dline in buf.chunks_mut(16) {
+        for dline in buf.chunks_exact_mut(16) {
             for i in 0..8 {
                 dline[i] = mc_filter!(bicubic; src, soff + i, 1, coeffs_w);
             }
             soff += sstride;
         }
         let mut soff = 16;
-        for dline in dst.chunks_mut(dstride).take(8) {
+        for dline in dst.chunks_exact_mut(dstride).take(8) {
             for i in 0..8 {
                 dline[i] = mc_filter!(bicubic; buf, soff + i, 16, coeffs_h);
             }
