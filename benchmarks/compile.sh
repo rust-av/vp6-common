@@ -4,6 +4,7 @@ mkdir -p builds
 
 # Compile Rust binary in release mode
 pushd rust-vp6
+export RUSTFLAGS="-C target-feature=+sse4.2,+avx2"
 cargo build --release --target-dir target
 cp target/release/rust-vp6 ../builds
 popd
