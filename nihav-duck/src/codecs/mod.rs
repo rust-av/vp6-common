@@ -4,21 +4,33 @@ macro_rules! validate {
     ($a:expr) => { if !$a { println!("check failed at {}:{}", file!(), line!()); return Err(DecoderError::InvalidData); } };
 }
 
+#[cfg(any(feature="encoder_vp6",feature="decoder_vp6"))]
+#[macro_use]
+#[allow(clippy::erasing_op)]
+#[allow(clippy::needless_range_loop)]
+#[allow(clippy::too_many_arguments)]
+#[allow(clippy::useless_let_if_seq)]
+mod vpcommon;
+#[cfg(any(feature="encoder_vp6", feature="decoder_vp6"))]
+#[allow(clippy::needless_range_loop)]
+#[allow(clippy::useless_let_if_seq)]
+#[allow(clippy::too_many_arguments)]
+mod vp56;
 #[cfg(any(feature="decoder_vp6", feature="encoder_vp6"))]
 mod vp6data;
 #[cfg(any(feature="decoder_vp6", feature="encoder_vp6"))]
 mod vp6dsp;
 #[cfg(feature="decoder_vp6")]
 #[allow(clippy::needless_range_loop)]
-mod vp6;
+mod vp6dec;
 
 const DUCK_CODECS: &[DecoderInfo] = &[
 #[cfg(feature="decoder_vp6")]
-    DecoderInfo { name: "vp6", get_decoder: vp6::get_decoder_vp6 },
+    DecoderInfo { name: "vp6", get_decoder: vp6dec::get_decoder_vp6 },
 #[cfg(feature="decoder_vp6")]
-    DecoderInfo { name: "vp6f", get_decoder: vp6::get_decoder_vp6f },
+    DecoderInfo { name: "vp6f", get_decoder: vp6dec::get_decoder_vp6f },
 #[cfg(feature="decoder_vp6")]
-    DecoderInfo { name: "vp6a", get_decoder: vp6::get_decoder_vp6_alpha },
+    DecoderInfo { name: "vp6a", get_decoder: vp6dec::get_decoder_vp6_alpha },
 ];
 
 /// Registers all available codecs provided by this crate.
