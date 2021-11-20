@@ -9,7 +9,7 @@ path = "../nihav-core"
 
 [dependencies.nihav_codec_support]
 path = "../nihav-codec-support"
-features = ["fft", "dsp_window", "blockdsp"]
+features = ["dsp_window", "blockdsp"]
 
 [dev-dependencies]
 nihav_commonfmt = { path = "../nihav-commonfmt", default-features=false, features = ["all_demuxers", "all_muxers"] }

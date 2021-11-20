@@ -23,8 +23,4 @@ pub mod imgwrite;
 #[allow(clippy::type_complexity)]
 pub mod test;
 
-#[cfg(feature="vq")]
-#[allow(clippy::needless_range_loop)]
-pub mod vq;
-
 extern crate nihav_core;
