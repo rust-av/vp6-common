@@ -1,5 +1,7 @@
-use nihav_codec_support::codecs::blockdsp;
-use nihav_codec_support::codecs::blockdsp::*;
+#![allow(clippy::manual_map)]
+
+//use nihav_codec_support::codecs::blockdsp;
+//use nihav_codec_support::codecs::blockdsp::*;
 use nihav_core::codecs::*;
 
 pub const VP_YUVA420_FORMAT: NAPixelFormaton = NAPixelFormaton {
@@ -359,11 +361,11 @@ pub fn vp_idct_dc(coeffs: &mut [i16; 64]) {
     }
 }
 
-pub fn unquant(coeffs: &mut [i16; 64], qmat: &[i16; 64]) {
+/*pub fn unquant(coeffs: &mut [i16; 64], qmat: &[i16; 64]) {
     for i in 1..64 {
         coeffs[i] = coeffs[i].wrapping_mul(qmat[i]);
     }
-}
+}*/
 
 pub fn vp_put_block(
     coeffs: &mut [i16; 64],
@@ -474,7 +476,7 @@ pub fn vp_add_block_dc(
     }
 }
 
-pub fn vp31_loop_filter(
+/*pub fn vp31_loop_filter(
     data: &mut [u8],
     off: usize,
     step: usize,
@@ -485,7 +487,7 @@ pub fn vp31_loop_filter(
     let mut loop_tab: [i16; 256] = [0; 256];
     calc_loop_tab(loop_str, &mut loop_tab);
     vp31_loop_filter_tab(data, off, step, stride, len, &loop_tab);
-}
+}*/
 
 pub fn calc_loop_tab(loop_str: i16, tab: &mut [i16; 256]) {
     for diff in -128..128_i16 {
@@ -543,7 +545,7 @@ pub fn vp31_loop_filter_step16_stride1(
     vp31_loop_filter_tab(data, off, 16, 1, len, loop_tab);
 }
 
-pub fn vp_copy_block(
+/*pub fn vp_copy_block(
     dst: &mut NASimpleVideoFrame<u8>,
     src: NAVideoBufferRef<u8>,
     comp: usize,
@@ -563,9 +565,9 @@ pub fn vp_copy_block(
     vp_copy_block_tab(
         dst, src, comp, dx, dy, mv_x, mv_y, preborder, postborder, &loop_tab, mode, interp, mc_buf,
     );
-}
+}*/
 
-pub fn vp_copy_block_tab(
+/*pub fn vp_copy_block_tab(
     dst: &mut NASimpleVideoFrame<u8>,
     src: NAVideoBufferRef<u8>,
     comp: usize,
@@ -624,9 +626,9 @@ pub fn vp_copy_block_tab(
     copy_block(
         dst, mc_buf, comp, dx, dy, dxoff, dyoff, 8, 8, preborder, postborder, mode, interp,
     );
-}
+}*/
 
-fn vp3_interp00(dst: &mut [u8], dstride: usize, src: &[u8], sstride: usize, bw: usize, bh: usize) {
+/*fn vp3_interp00(dst: &mut [u8], dstride: usize, src: &[u8], sstride: usize, bw: usize, bh: usize) {
     let mut didx = 0;
     let mut sidx = 0;
     for _ in 0..bh {
@@ -634,9 +636,9 @@ fn vp3_interp00(dst: &mut [u8], dstride: usize, src: &[u8], sstride: usize, bw: 
         didx += dstride;
         sidx += sstride;
     }
-}
+}*/
 
-fn vp3_interp01(dst: &mut [u8], dstride: usize, src: &[u8], sstride: usize, bw: usize, bh: usize) {
+/*fn vp3_interp01(dst: &mut [u8], dstride: usize, src: &[u8], sstride: usize, bw: usize, bh: usize) {
     let mut didx = 0;
     let mut sidx = 0;
     for _ in 0..bh {
@@ -646,9 +648,9 @@ fn vp3_interp01(dst: &mut [u8], dstride: usize, src: &[u8], sstride: usize, bw: 
         didx += dstride;
         sidx += sstride;
     }
-}
+}*/
 
-fn vp3_interp10(dst: &mut [u8], dstride: usize, src: &[u8], sstride: usize, bw: usize, bh: usize) {
+/*fn vp3_interp10(dst: &mut [u8], dstride: usize, src: &[u8], sstride: usize, bw: usize, bh: usize) {
     let mut didx = 0;
     let mut sidx = 0;
     for _ in 0..bh {
@@ -659,9 +661,9 @@ fn vp3_interp10(dst: &mut [u8], dstride: usize, src: &[u8], sstride: usize, bw: 
         didx += dstride;
         sidx += sstride;
     }
-}
+}*/
 
-fn vp3_interp1x(dst: &mut [u8], dstride: usize, src: &[u8], sstride: usize, bw: usize, bh: usize) {
+/*fn vp3_interp1x(dst: &mut [u8], dstride: usize, src: &[u8], sstride: usize, bw: usize, bh: usize) {
     let mut didx = 0;
     let mut sidx = 0;
     for _ in 0..bh {
@@ -672,9 +674,9 @@ fn vp3_interp1x(dst: &mut [u8], dstride: usize, src: &[u8], sstride: usize, bw: 
         didx += dstride;
         sidx += sstride;
     }
-}
+}*/
 
-fn vp3_interp1y(dst: &mut [u8], dstride: usize, src: &[u8], sstride: usize, bw: usize, bh: usize) {
+/*fn vp3_interp1y(dst: &mut [u8], dstride: usize, src: &[u8], sstride: usize, bw: usize, bh: usize) {
     let mut didx = 0;
     let mut sidx = 0;
     for _ in 0..bh {
@@ -685,12 +687,12 @@ fn vp3_interp1y(dst: &mut [u8], dstride: usize, src: &[u8], sstride: usize, bw: 
         didx += dstride;
         sidx += sstride;
     }
-}
+}*/
 
-pub const VP3_INTERP_FUNCS: &[blockdsp::BlkInterpFunc] = &[
+/*pub const VP3_INTERP_FUNCS: &[blockdsp::BlkInterpFunc] = &[
     vp3_interp00,
     vp3_interp01,
     vp3_interp10,
     vp3_interp1x,
     vp3_interp1y,
-];
+];*/

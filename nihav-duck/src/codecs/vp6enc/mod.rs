@@ -1,3 +1,6 @@
+#![allow(clippy::wrong_self_convention)]
+#![allow(clippy::field_reassign_with_default)]
+
 use super::vp6data::*;
 use super::vpcommon::*;
 use nihav_core::codecs::*;
