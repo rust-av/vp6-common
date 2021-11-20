@@ -1,0 +1,58 @@
+name: vp6
+
+on: [push, pull_request]
+
+defaults:
+  run:
+    working-directory: nihav-duck
+
+jobs:
+  clippy-rustfmt:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+        components: clippy, rustfmt
+
+    - name: Run rustfmt
+      run: |
+        cargo fmt -- --check --verbose
+
+    - name: Run cargo clippy
+      run: |
+        cargo clippy --all-targets --tests --benches -- -D warnings
+
+  test:
+
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+
+    - name: Build
+      run: cargo build
+
+    - name: Test
+      run: cargo test --all-features
+
+    - name: Generate docs
+      run: cargo doc --all-features --no-deps
