@@ -674,7 +674,7 @@ mod test {
         test_decoding(
             "avi",
             "vp6",
-            "assets/Duck/selection_720x576_300kBit_vp60i.avi",
+            "assets/selection_720x576_300kBit_vp60i.avi",
             Some(16),
             &dmx_reg,
             &dec_reg,
@@ -691,7 +691,7 @@ mod test {
         test_decoding(
             "avi",
             "vp6",
-            "assets/Duck/vp6_crash.avi",
+            "assets/vp6_crash.avi",
             Some(4),
             &dmx_reg,
             &dec_reg,
@@ -714,7 +714,7 @@ mod test {
         test_decoding(
             "avi",
             "vp6a",
-            "assets/Duck/vp6a.avi",
+            "assets/vp6a.avi",
             Some(25),
             &dmx_reg,
             &dec_reg,

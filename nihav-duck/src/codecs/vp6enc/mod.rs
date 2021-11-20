@@ -1035,7 +1035,7 @@ mod test {
 
         let dec_config = DecoderTestParams {
             demuxer: "avi",
-            in_name: "assets/Duck/ot171_vp40.avi",
+            in_name: "assets/ot171_vp40.avi",
             stream_type: StreamType::Video,
             limit: Some(1),
             dmx_reg,

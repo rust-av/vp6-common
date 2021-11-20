@@ -1,6 +1,5 @@
 target
 Cargo.lock
-assets
 benchmarks/c-vp6/c-vp6
 benchmarks/rust-vp6/target/
 benchmarks/builds/

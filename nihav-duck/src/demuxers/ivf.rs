@@ -112,7 +112,7 @@ impl DemuxerCreator for IVFDemuxerCreator {
     }
 }
 
-#[cfg(test)]
+/*#[cfg(test)]
 mod test {
     use super::*;
     use std::fs::File;
@@ -139,4 +139,4 @@ mod test {
             println!("Got {}", pkt);
         }
     }
-}
+}*/
