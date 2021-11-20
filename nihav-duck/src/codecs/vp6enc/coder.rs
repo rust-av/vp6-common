@@ -1,23 +1,33 @@
-use nihav_core::io::byteio::*;
-use nihav_core::codecs::{EncoderResult, EncoderError};
-use nihav_codec_support::codecs::MV;
-use super::super::vpcommon::*;
 use super::super::vp6data::*;
+use super::super::vpcommon::*;
 use super::models::*;
+use nihav_codec_support::codecs::MV;
+use nihav_core::codecs::{EncoderError, EncoderResult};
+use nihav_core::io::byteio::*;
 
 struct EncSeq {
-    bit:    bool,
-    idx:    u8,
+    bit: bool,
+    idx: u8,
 }
 
 pub struct TokenSeq<T: PartialEq> {
-    val:    T,
-    seq:    &'static [EncSeq],
+    val: T,
+    seq: &'static [EncSeq],
 }
 
 macro_rules! bit_entry {
-    (T; $idx:expr) => {EncSeq {bit: true,  idx: $idx }};
-    (F; $idx:expr) => {EncSeq {bit: false, idx: $idx }};
+    (T; $idx:expr) => {
+        EncSeq {
+            bit: true,
+            idx: $idx,
+        }
+    };
+    (F; $idx:expr) => {
+        EncSeq {
+            bit: false,
+            idx: $idx,
+        }
+    };
 }
 
 macro_rules! bit_seq {
@@ -116,13 +126,13 @@ const COEF_TREE: &[TokenSeq<i8>] = &[
 
 fn coef_to_cat(coef: i16) -> i8 {
     match coef.abs() {
-        0 ..=4  => coef.abs() as i8,
-        5 ..=6  => -1,
-        7 ..=10 => -2,
+        0..=4 => coef.abs() as i8,
+        5..=6 => -1,
+        7..=10 => -2,
         11..=18 => -3,
         19..=34 => -4,
         35..=66 => -5,
-        _       => -6,
+        _ => -6,
     }
 }
 
@@ -139,30 +149,30 @@ const ZERO_RUN_TREE: &[TokenSeq<u8>] = &[
 ];
 
 pub struct BoolEncoder<'a, 'b> {
-    bw:     &'a mut ByteWriter<'b>,
-    val:    u32,
-    range:  u32,
-    bits:   u8,
-    saved:  u8,
-    run:    usize,
+    bw: &'a mut ByteWriter<'b>,
+    val: u32,
+    range: u32,
+    bits: u8,
+    saved: u8,
+    run: usize,
 }
 
 impl<'a, 'b> BoolEncoder<'a, 'b> {
     pub fn new(bw: &'a mut ByteWriter<'b>) -> Self {
         Self {
             bw,
-            val:    0,
-            range:  255,
-            bits:   0,
-            saved:  0,
-            run:    0,
+            val: 0,
+            range: 255,
+            bits: 0,
+            saved: 0,
+            run: 0,
         }
     }
     pub fn put_bool(&mut self, bit: bool, prob: u8) -> EncoderResult<()> {
         let split = 1 + (((self.range - 1) * u32::from(prob)) >> 8);
         if bit {
             self.range -= split;
-            self.val   += split;
+            self.val += split;
         } else {
             self.range = split;
         }
@@ -247,7 +257,12 @@ impl<'a, 'b> BoolEncoder<'a, 'b> {
         }
         Ok(())
     }
-    pub fn write_el<T: PartialEq>(&mut self, el: T, tree: &[TokenSeq<T>], probs: &[u8]) -> EncoderResult<()> {
+    pub fn write_el<T: PartialEq>(
+        &mut self,
+        el: T,
+        tree: &[TokenSeq<T>],
+        probs: &[u8],
+    ) -> EncoderResult<()> {
         for entry in tree.iter() {
             if entry.val == el {
                 for seq in entry.seq.iter() {
@@ -258,15 +273,21 @@ impl<'a, 'b> BoolEncoder<'a, 'b> {
         }
         Err(EncoderError::Bug)
     }
-    fn write_cat(&mut self, cat: i8, tree: &[TokenSeq<i8>], tok_probs: &[u8], val_probs: &[u8; 11]) -> EncoderResult<()> {
+    fn write_cat(
+        &mut self,
+        cat: i8,
+        tree: &[TokenSeq<i8>],
+        tok_probs: &[u8],
+        val_probs: &[u8; 11],
+    ) -> EncoderResult<()> {
         for entry in tree.iter() {
             if entry.val == cat {
                 for seq in entry.seq.iter() {
                     let prob = if seq.idx < 5 {
-                            tok_probs[seq.idx as usize]
-                        } else {
-                            val_probs[seq.idx as usize]
-                        };
+                        tok_probs[seq.idx as usize]
+                    } else {
+                        val_probs[seq.idx as usize]
+                    };
                     self.put_bool(seq.bit, prob)?;
                 }
                 return Ok(());
@@ -287,7 +308,12 @@ impl<'a, 'b> BoolEncoder<'a, 'b> {
 
         Ok(())
     }
-    fn write_dc(&mut self, val: i16, tok_probs: &[u8; 5], val_probs: &[u8; 11]) -> EncoderResult<()> {
+    fn write_dc(
+        &mut self,
+        val: i16,
+        tok_probs: &[u8; 5],
+        val_probs: &[u8; 11],
+    ) -> EncoderResult<()> {
         let cat = coef_to_cat(val);
         self.write_cat(cat, DC_TREE, tok_probs, val_probs)?;
         if cat < 0 {
@@ -329,7 +355,9 @@ fn calc_mb_model_probs(prob_xmitted: &[u8; 20], mbtype_models: &mut [VP56MBTypeM
         let mut cnt = [0u32; 10];
         let mut total = 0;
         for i in 0..10 {
-            if i == mode { continue; }
+            if i == mode {
+                continue;
+            }
             cnt[i] = 100 * u32::from(prob_xmitted[i * 2]);
             total += cnt[i];
         }
@@ -342,8 +370,10 @@ fn calc_mb_model_probs(prob_xmitted: &[u8; 20], mbtype_models: &mut [VP56MBTypeM
         let gold_mv1_weight = (cnt[8] as u32) + (cnt[9] as u32);
         let mix_weight = (cnt[1] as u32) + (cnt[7] as u32);
         mdl.probs[0] = 1 + rescale_mb_mode_prob(inter_mv0_weight + inter_mv1_weight, total);
-        mdl.probs[1] = 1 + rescale_mb_mode_prob(inter_mv0_weight, inter_mv0_weight + inter_mv1_weight);
-        mdl.probs[2] = 1 + rescale_mb_mode_prob(mix_weight, mix_weight + gold_mv0_weight + gold_mv1_weight);
+        mdl.probs[1] =
+            1 + rescale_mb_mode_prob(inter_mv0_weight, inter_mv0_weight + inter_mv1_weight);
+        mdl.probs[2] =
+            1 + rescale_mb_mode_prob(mix_weight, mix_weight + gold_mv0_weight + gold_mv1_weight);
         mdl.probs[3] = 1 + rescale_mb_mode_prob(cnt[0] as u32, inter_mv0_weight);
         mdl.probs[4] = 1 + rescale_mb_mode_prob(cnt[3] as u32, inter_mv1_weight);
         mdl.probs[5] = 1 + rescale_mb_mode_prob(cnt[1], mix_weight);
@@ -353,7 +383,11 @@ fn calc_mb_model_probs(prob_xmitted: &[u8; 20], mbtype_models: &mut [VP56MBTypeM
     }
 }
 
-fn calc_mbtype_bits(prob_xmitted: &[u8; 20], stats: &[[usize; 10]; 10], mdl: &mut [VP56MBTypeModel; 10]) -> u32 {
+fn calc_mbtype_bits(
+    prob_xmitted: &[u8; 20],
+    stats: &[[usize; 10]; 10],
+    mdl: &mut [VP56MBTypeModel; 10],
+) -> u32 {
     const MB_TYPES: [VPMBType; 10] = [
         VPMBType::InterNoMV,
         VPMBType::Intra,
@@ -364,7 +398,7 @@ fn calc_mbtype_bits(prob_xmitted: &[u8; 20], stats: &[[usize; 10]; 10], mdl: &mu
         VPMBType::GoldenMV,
         VPMBType::InterFourMV,
         VPMBType::GoldenNearest,
-        VPMBType::GoldenNear
+        VPMBType::GoldenNear,
     ];
 
     calc_mb_model_probs(prob_xmitted, mdl);
@@ -377,7 +411,8 @@ fn calc_mbtype_bits(prob_xmitted: &[u8; 20], stats: &[[usize; 10]; 10], mdl: &mu
                 for entry in MODE_TREE.iter() {
                     if entry.val == MB_TYPES[cur] {
                         for seq in entry.seq.iter() {
-                            nits += Estimator::est_nits(seq.bit, mdl.probs[seq.idx as usize]) * ccount;
+                            nits +=
+                                Estimator::est_nits(seq.bit, mdl.probs[seq.idx as usize]) * ccount;
                         }
                         break;
                     }
@@ -405,7 +440,7 @@ fn find_model_vq(prob_xmitted: &[u8; 20], vq: &[[u8; 20]; 16]) -> usize {
         }
         if dist < best_dist {
             best_dist = dist;
-            best_idx  = idx;
+            best_idx = idx;
         }
     }
 
@@ -413,15 +448,42 @@ fn find_model_vq(prob_xmitted: &[u8; 20], vq: &[[u8; 20]; 16]) -> usize {
 }
 
 // todo per-delta decision, incremental updates and such
-fn deltas_bits(probs: &[u8; 20], base: &[u8; 20], stats: &[[usize; 10]; 10], tmp: &mut [VP56MBTypeModel; 10], deltas: &mut [i16; 20]) -> u32 {
+fn deltas_bits(
+    probs: &[u8; 20],
+    base: &[u8; 20],
+    stats: &[[usize; 10]; 10],
+    tmp: &mut [VP56MBTypeModel; 10],
+    deltas: &mut [i16; 20],
+) -> u32 {
     const DELTA_PROBS: [u8; 8] = [
         PROB_BITS[205],
         PROB_BITS[256 - 205] + PROB_BITS[171] + PROB_BITS[256 - 83] + PROB_BITS[128],
         PROB_BITS[256 - 205] + PROB_BITS[171] + PROB_BITS[83] + PROB_BITS[128],
-        PROB_BITS[256 - 205] + PROB_BITS[256 - 171] + PROB_BITS[199] + PROB_BITS[256 - 140] + PROB_BITS[128],
-        PROB_BITS[256 - 205] + PROB_BITS[256 - 171] + PROB_BITS[199] + PROB_BITS[140] + PROB_BITS[256 - 125] + PROB_BITS[128],
-        PROB_BITS[256 - 205] + PROB_BITS[256 - 171] + PROB_BITS[199] + PROB_BITS[140] + PROB_BITS[125] + PROB_BITS[256 - 104] + PROB_BITS[128],
-        PROB_BITS[256 - 205] + PROB_BITS[256 - 171] + PROB_BITS[199] + PROB_BITS[140] + PROB_BITS[125] + PROB_BITS[104] + PROB_BITS[128],
+        PROB_BITS[256 - 205]
+            + PROB_BITS[256 - 171]
+            + PROB_BITS[199]
+            + PROB_BITS[256 - 140]
+            + PROB_BITS[128],
+        PROB_BITS[256 - 205]
+            + PROB_BITS[256 - 171]
+            + PROB_BITS[199]
+            + PROB_BITS[140]
+            + PROB_BITS[256 - 125]
+            + PROB_BITS[128],
+        PROB_BITS[256 - 205]
+            + PROB_BITS[256 - 171]
+            + PROB_BITS[199]
+            + PROB_BITS[140]
+            + PROB_BITS[125]
+            + PROB_BITS[256 - 104]
+            + PROB_BITS[128],
+        PROB_BITS[256 - 205]
+            + PROB_BITS[256 - 171]
+            + PROB_BITS[199]
+            + PROB_BITS[140]
+            + PROB_BITS[125]
+            + PROB_BITS[104]
+            + PROB_BITS[128],
         PROB_BITS[256 - 205] + PROB_BITS[256 - 171] + PROB_BITS[256 - 199] + 8 * PROB_BITS[128],
     ];
 
@@ -445,7 +507,12 @@ fn deltas_bits(probs: &[u8; 20], base: &[u8; 20], stats: &[[usize; 10]; 10], tmp
     Estimator::nits_to_bits(nits) + calc_mbtype_bits(&tprobs, stats, tmp) + 5
 }
 
-pub fn encode_mode_prob_models(bc: &mut BoolEncoder, models: &mut VP56Models, pmodels: &VP56Models, stats: &[[[usize; 10]; 10]; 3]) -> EncoderResult<()> {
+pub fn encode_mode_prob_models(
+    bc: &mut BoolEncoder,
+    models: &mut VP56Models,
+    pmodels: &VP56Models,
+    stats: &[[[usize; 10]; 10]; 3],
+) -> EncoderResult<()> {
     let mut tmp = [VP56MBTypeModel::default(); 10];
     let mut tprob = [0; 20];
     for ctx in 0..3 {
@@ -464,7 +531,13 @@ pub fn encode_mode_prob_models(bc: &mut BoolEncoder, models: &mut VP56Models, pm
                     bc.put_bits(idx as u32, 4)?;
                     let mut diffs_present = tprob != models.prob_xmitted[ctx];
                     let mut deltas = [0; 20];
-                    let delta_cost = deltas_bits(&models.prob_xmitted[ctx], &tprob, &stats[ctx], &mut tmp, &mut deltas);
+                    let delta_cost = deltas_bits(
+                        &models.prob_xmitted[ctx],
+                        &tprob,
+                        &stats[ctx],
+                        &mut tmp,
+                        &mut deltas,
+                    );
                     if delta_cost + 1 >= new_bits {
                         diffs_present = false;
                     }
@@ -509,25 +582,41 @@ pub fn encode_mode_prob_models(bc: &mut BoolEncoder, models: &mut VP56Models, pm
     Ok(())
 }
 
-pub fn encode_mv_models(bc: &mut BoolEncoder, models: &[VP56MVModel; 2], pmodels: &[VP56MVModel; 2]) -> EncoderResult<()> {
+pub fn encode_mv_models(
+    bc: &mut BoolEncoder,
+    models: &[VP56MVModel; 2],
+    pmodels: &[VP56MVModel; 2],
+) -> EncoderResult<()> {
     for (i, (mdl, pmdl)) in models.iter().zip(pmodels.iter()).enumerate() {
         bc.encode_probability(mdl.nz_prob, pmdl.nz_prob, HAS_NZ_PROB[i])?;
         bc.encode_probability(mdl.sign_prob, pmdl.sign_prob, HAS_SIGN_PROB[i])?;
     }
     for (i, (mdl, pmdl)) in models.iter().zip(pmodels.iter()).enumerate() {
-        for (&coded_prob, (&prob, &pprob)) in HAS_TREE_PROB[i].iter().zip(mdl.tree_probs.iter().zip(pmdl.tree_probs.iter())) {
+        for (&coded_prob, (&prob, &pprob)) in HAS_TREE_PROB[i]
+            .iter()
+            .zip(mdl.tree_probs.iter().zip(pmdl.tree_probs.iter()))
+        {
             bc.encode_probability(prob, pprob, coded_prob)?;
         }
     }
     for (i, (mdl, pmdl)) in models.iter().zip(pmodels.iter()).enumerate() {
-        for (&coded_prob, (&prob, &pprob)) in HAS_RAW_PROB[i].iter().zip(mdl.raw_probs.iter().zip(pmdl.raw_probs.iter())) {
+        for (&coded_prob, (&prob, &pprob)) in HAS_RAW_PROB[i]
+            .iter()
+            .zip(mdl.raw_probs.iter().zip(pmdl.raw_probs.iter()))
+        {
             bc.encode_probability(prob, pprob, coded_prob)?;
         }
     }
     Ok(())
 }
 
-pub fn encode_coeff_models(bc: &mut BoolEncoder, models: &mut VP56Models, pmodels: &VP56Models, is_intra: bool, interlaced: bool) -> EncoderResult<()> {
+pub fn encode_coeff_models(
+    bc: &mut BoolEncoder,
+    models: &mut VP56Models,
+    pmodels: &VP56Models,
+    is_intra: bool,
+    interlaced: bool,
+) -> EncoderResult<()> {
     let mut def_prob = [128u8; 11];
     for plane in 0..2 {
         for i in 0..11 {
@@ -555,7 +644,11 @@ pub fn encode_coeff_models(bc: &mut BoolEncoder, models: &mut VP56Models, pmodel
 
     for comp in 0..2 {
         for i in 0..14 {
-            bc.encode_probability(models.vp6models.zero_run_probs[comp][i], pmodels.vp6models.zero_run_probs[comp][i], HAS_ZERO_RUN_PROBS[comp][i])?;
+            bc.encode_probability(
+                models.vp6models.zero_run_probs[comp][i],
+                pmodels.vp6models.zero_run_probs[comp][i],
+                HAS_ZERO_RUN_PROBS[comp][i],
+            )?;
         }
     }
 
@@ -580,14 +673,21 @@ pub fn encode_coeff_models(bc: &mut BoolEncoder, models: &mut VP56Models, pmodel
         let mdl = &mut models.coeff_models[plane];
         for i in 0..3 {
             for k in 0..5 {
-                mdl.dc_token_probs[0][i][k] = rescale_prob(mdl.dc_value_probs[k], &VP6_DC_WEIGHTS[k][i], 255);
+                mdl.dc_token_probs[0][i][k] =
+                    rescale_prob(mdl.dc_value_probs[k], &VP6_DC_WEIGHTS[k][i], 255);
             }
         }
     }
     Ok(())
 }
 
-pub fn encode_block(bc: &mut BoolEncoder, blk: &[i16; 64], dc_mode: usize, model: &VP56CoeffModel, vp6model: &VP6Models) -> EncoderResult<()> {
+pub fn encode_block(
+    bc: &mut BoolEncoder,
+    blk: &[i16; 64],
+    dc_mode: usize,
+    model: &VP56CoeffModel,
+    vp6model: &VP6Models,
+) -> EncoderResult<()> {
     let mut last = 64;
     for i in (0..64).rev() {
         if blk[vp6model.zigzag[i]] != 0 {
@@ -596,7 +696,11 @@ pub fn encode_block(bc: &mut BoolEncoder, blk: &[i16; 64], dc_mode: usize, model
         }
     }
     if last < 64 {
-        bc.write_dc(blk[0], &model.dc_token_probs[0][dc_mode], &model.dc_value_probs)?;
+        bc.write_dc(
+            blk[0],
+            &model.dc_token_probs[0][dc_mode],
+            &model.dc_value_probs,
+        )?;
         let mut idx = 1;
         let mut last_idx = 0;
         let mut last_val = blk[0];
@@ -606,7 +710,10 @@ pub fn encode_block(bc: &mut BoolEncoder, blk: &[i16; 64], dc_mode: usize, model
             if (val != 0) || has_nnz {
                 if last_val == 0 && idx != 1 {
                     let zrun = idx - last_idx;
-                    bc.write_zero_run(zrun, &vp6model.zero_run_probs[if last_idx + 1 >= 7 { 1 } else { 0 }])?;
+                    bc.write_zero_run(
+                        zrun,
+                        &vp6model.zero_run_probs[if last_idx + 1 >= 7 { 1 } else { 0 }],
+                    )?;
                 }
                 let ac_band = VP6_IDX_TO_AC_BAND[idx];
                 let ac_mode = last_val.abs().min(2) as usize;
@@ -623,7 +730,12 @@ pub fn encode_block(bc: &mut BoolEncoder, blk: &[i16; 64], dc_mode: usize, model
             bc.write_el(EOB, COEF_TREE, &model.ac_val_probs[ac_mode][ac_band])?;
         }
     } else {
-        bc.write_cat(0, DC_TREE, &model.dc_token_probs[0][dc_mode], &model.dc_value_probs)?;
+        bc.write_cat(
+            0,
+            DC_TREE,
+            &model.dc_token_probs[0][dc_mode],
+            &model.dc_value_probs,
+        )?;
         let ac_band = VP6_IDX_TO_AC_BAND[1];
         bc.write_el(EOB, COEF_TREE, &model.ac_val_probs[0][ac_band])?;
     }
@@ -632,20 +744,26 @@ pub fn encode_block(bc: &mut BoolEncoder, blk: &[i16; 64], dc_mode: usize, model
 
 fn map_mb_type(mbtype: VPMBType) -> usize {
     match mbtype {
-        VPMBType::InterNoMV     => 0,
-        VPMBType::Intra         => 1,
-        VPMBType::InterMV       => 2,
-        VPMBType::InterNearest  => 3,
-        VPMBType::InterNear     => 4,
-        VPMBType::GoldenNoMV    => 5,
-        VPMBType::GoldenMV      => 6,
-        VPMBType::InterFourMV   => 7,
+        VPMBType::InterNoMV => 0,
+        VPMBType::Intra => 1,
+        VPMBType::InterMV => 2,
+        VPMBType::InterNearest => 3,
+        VPMBType::InterNear => 4,
+        VPMBType::GoldenNoMV => 5,
+        VPMBType::GoldenMV => 6,
+        VPMBType::InterFourMV => 7,
         VPMBType::GoldenNearest => 8,
-        VPMBType::GoldenNear    => 9,
+        VPMBType::GoldenNear => 9,
     }
 }
 
-pub fn encode_mb_type(bc: &mut BoolEncoder, mb_type: VPMBType, last_mb_type: VPMBType, ctx: usize, model: &VP56Models) -> EncoderResult<()> {
+pub fn encode_mb_type(
+    bc: &mut BoolEncoder,
+    mb_type: VPMBType,
+    last_mb_type: VPMBType,
+    ctx: usize,
+    model: &VP56Models,
+) -> EncoderResult<()> {
     let probs = &model.mbtype_models[ctx][map_mb_type(last_mb_type)].probs;
     bc.put_bool(mb_type == last_mb_type, probs[9])?;
     if mb_type != last_mb_type {
@@ -682,7 +800,9 @@ pub fn encode_mv(bc: &mut BoolEncoder, mv: MV, model: &VP56Models) -> EncoderRes
 struct Estimator {}
 
 impl Estimator {
-    fn new() -> Self { Self{} }
+    fn new() -> Self {
+        Self {}
+    }
     fn write_el<T: PartialEq>(&self, el: T, tree: &[TokenSeq<T>], probs: &mut [ProbCounter]) {
         for entry in tree.iter() {
             if entry.val == el {
@@ -725,10 +845,18 @@ impl Estimator {
             u32::from(PROB_BITS[256 - (prob as usize)])
         }
     }
-    fn nits_to_bits(nits: u32) -> u32 { (nits + 7) >> 3 }
+    fn nits_to_bits(nits: u32) -> u32 {
+        (nits + 7) >> 3
+    }
 }
 
-pub fn estimate_block(blk: &[i16; 64], _dc_mode: usize, model: &mut VP56CoeffModelStat, vp6model: &mut VP6ModelsStat, scan: &[usize; 64]) {
+pub fn estimate_block(
+    blk: &[i16; 64],
+    _dc_mode: usize,
+    model: &mut VP56CoeffModelStat,
+    vp6model: &mut VP6ModelsStat,
+    scan: &[usize; 64],
+) {
     let bc = Estimator::new();
 
     let mut last = 64;
@@ -749,7 +877,10 @@ pub fn estimate_block(blk: &[i16; 64], _dc_mode: usize, model: &mut VP56CoeffMod
             if (val != 0) || has_nnz {
                 if last_val == 0 && idx != 1 {
                     let zrun = idx - last_idx;
-                    bc.write_zero_run(zrun, &mut vp6model.zero_run_probs[if last_idx + 1 >= 7 { 1 } else { 0 }]);
+                    bc.write_zero_run(
+                        zrun,
+                        &mut vp6model.zero_run_probs[if last_idx + 1 >= 7 { 1 } else { 0 }],
+                    );
                 }
                 let ac_band = VP6_IDX_TO_AC_BAND[idx];
                 let ac_mode = last_val.abs().min(2) as usize;
@@ -772,7 +903,12 @@ pub fn estimate_block(blk: &[i16; 64], _dc_mode: usize, model: &mut VP56CoeffMod
     }
 }
 
-pub fn estimate_mb_type(mb_type: VPMBType, last_mb_type: VPMBType, ctx: usize, model: &mut VP56ModelsStat) {
+pub fn estimate_mb_type(
+    mb_type: VPMBType,
+    last_mb_type: VPMBType,
+    ctx: usize,
+    model: &mut VP56ModelsStat,
+) {
     model.mbtype_models[ctx][map_mb_type(last_mb_type)][map_mb_type(mb_type)] += 1;
 }
 
@@ -801,56 +937,144 @@ pub fn estimate_mv(mv: MV, model: &mut VP56ModelsStat) {
 }
 
 const VP56_MODE_VQ: [[[u8; 20]; 16]; 3] = [
-  [
-    [   9,  15,  32,  25,   7,  19,   9,  21,   1,  12,  14,  12,   3,  18,  14,  23,   3,  10,   0,   4 ],
-    [  48,  39,   1,   2,  11,  27,  29,  44,   7,  27,   1,   4,   0,   3,   1,   6,   1,   2,   0,   0 ],
-    [  21,  32,   1,   2,   4,  10,  32,  43,   6,  23,   2,   3,   1,  19,   1,   6,  12,  21,   0,   7 ],
-    [  69,  83,   0,   0,   0,   2,  10,  29,   3,  12,   0,   1,   0,   3,   0,   3,   2,   2,   0,   0 ],
-    [  11,  20,   1,   4,  18,  36,  43,  48,  13,  35,   0,   2,   0,   5,   3,  12,   1,   2,   0,   0 ],
-    [  70,  44,   0,   1,   2,  10,  37,  46,   8,  26,   0,   2,   0,   2,   0,   2,   0,   1,   0,   0 ],
-    [   8,  15,   0,   1,   8,  21,  74,  53,  22,  42,   0,   1,   0,   2,   0,   3,   1,   2,   0,   0 ],
-    [ 141,  42,   0,   0,   1,   4,  11,  24,   1,  11,   0,   1,   0,   1,   0,   2,   0,   0,   0,   0 ],
-    [   8,  19,   4,  10,  24,  45,  21,  37,   9,  29,   0,   3,   1,   7,  11,  25,   0,   2,   0,   1 ],
-    [  46,  42,   0,   1,   2,  10,  54,  51,  10,  30,   0,   2,   0,   2,   0,   1,   0,   1,   0,   0 ],
-    [  28,  32,   0,   0,   3,  10,  75,  51,  14,  33,   0,   1,   0,   2,   0,   1,   1,   2,   0,   0 ],
-    [ 100,  46,   0,   1,   3,   9,  21,  37,   5,  20,   0,   1,   0,   2,   1,   2,   0,   1,   0,   0 ],
-    [  27,  29,   0,   1,   9,  25,  53,  51,  12,  34,   0,   1,   0,   3,   1,   5,   0,   2,   0,   0 ],
-    [  80,  38,   0,   0,   1,   4,  69,  33,   5,  16,   0,   1,   0,   1,   0,   0,   0,   1,   0,   0 ],
-    [  16,  20,   0,   0,   2,   8, 104,  49,  15,  33,   0,   1,   0,   1,   0,   1,   1,   1,   0,   0 ],
-    [ 194,  16,   0,   0,   1,   1,   1,   9,   1,   3,   0,   0,   0,   1,   0,   1,   0,   0,   0,   0 ],
-  ], [
-    [  41,  22,   1,   0,   1,  31,   0,   0,   0,   0,   0,   1,   1,   7,   0,   1,  98,  25,   4,  10 ],
-    [ 123,  37,   6,   4,   1,  27,   0,   0,   0,   0,   5,   8,   1,   7,   0,   1,  12,  10,   0,   2 ],
-    [  26,  14,  14,  12,   0,  24,   0,   0,   0,   0,  55,  17,   1,   9,   0,  36,   5,   7,   1,   3 ],
-    [ 209,   5,   0,   0,   0,  27,   0,   0,   0,   0,   0,   1,   0,   1,   0,   1,   0,   0,   0,   0 ],
-    [   2,   5,   4,   5,   0, 121,   0,   0,   0,   0,   0,   3,   2,   4,   1,   4,   2,   2,   0,   1 ],
-    [ 175,   5,   0,   1,   0,  48,   0,   0,   0,   0,   0,   2,   0,   1,   0,   2,   0,   1,   0,   0 ],
-    [  83,   5,   2,   3,   0, 102,   0,   0,   0,   0,   1,   3,   0,   2,   0,   1,   0,   0,   0,   0 ],
-    [ 233,   6,   0,   0,   0,   8,   0,   0,   0,   0,   0,   1,   0,   1,   0,   0,   0,   1,   0,   0 ],
-    [  34,  16, 112,  21,   1,  28,   0,   0,   0,   0,   6,   8,   1,   7,   0,   3,   2,   5,   0,   2 ],
-    [ 159,  35,   2,   2,   0,  25,   0,   0,   0,   0,   3,   6,   0,   5,   0,   1,   4,   4,   0,   1 ],
-    [  75,  39,   5,   7,   2,  48,   0,   0,   0,   0,   3,  11,   2,  16,   1,   4,   7,  10,   0,   2 ],
-    [ 212,  21,   0,   1,   0,   9,   0,   0,   0,   0,   1,   2,   0,   2,   0,   0,   2,   2,   0,   0 ],
-    [   4,   2,   0,   0,   0, 172,   0,   0,   0,   0,   0,   1,   0,   2,   0,   0,   2,   0,   0,   0 ],
-    [ 187,  22,   1,   1,   0,  17,   0,   0,   0,   0,   3,   6,   0,   4,   0,   1,   4,   4,   0,   1 ],
-    [ 133,   6,   1,   2,   1,  70,   0,   0,   0,   0,   0,   2,   0,   4,   0,   3,   1,   1,   0,   0 ],
-    [ 251,   1,   0,   0,   0,   2,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0 ],
-  ], [
-    [   2,   3,   2,   3,   0,   2,   0,   2,   0,   0,  11,   4,   1,   4,   0,   2,   3,   2,   0,   4 ],
-    [  49,  46,   3,   4,   7,  31,  42,  41,   0,   0,   2,   6,   1,   7,   1,   4,   2,   4,   0,   1 ],
-    [  26,  25,   1,   1,   2,  10,  67,  39,   0,   0,   1,   1,   0,  14,   0,   2,  31,  26,   1,   6 ],
-    [ 103,  46,   1,   2,   2,  10,  33,  42,   0,   0,   1,   4,   0,   3,   0,   1,   1,   3,   0,   0 ],
-    [  14,  31,   9,  13,  14,  54,  22,  29,   0,   0,   2,   6,   4,  18,   6,  13,   1,   5,   0,   1 ],
-    [  85,  39,   0,   0,   1,   9,  69,  40,   0,   0,   0,   1,   0,   3,   0,   1,   2,   3,   0,   0 ],
-    [  31,  28,   0,   0,   3,  14, 130,  34,   0,   0,   0,   1,   0,   3,   0,   1,   3,   3,   0,   1 ],
-    [ 171,  25,   0,   0,   1,   5,  25,  21,   0,   0,   0,   1,   0,   1,   0,   0,   0,   0,   0,   0 ],
-    [  17,  21,  68,  29,   6,  15,  13,  22,   0,   0,   6,  12,   3,  14,   4,  10,   1,   7,   0,   3 ],
-    [  51,  39,   0,   1,   2,  12,  91,  44,   0,   0,   0,   2,   0,   3,   0,   1,   2,   3,   0,   1 ],
-    [  81,  25,   0,   0,   2,   9, 106,  26,   0,   0,   0,   1,   0,   1,   0,   1,   1,   1,   0,   0 ],
-    [ 140,  37,   0,   1,   1,   8,  24,  33,   0,   0,   1,   2,   0,   2,   0,   1,   1,   2,   0,   0 ],
-    [  14,  23,   1,   3,  11,  53,  90,  31,   0,   0,   0,   3,   1,   5,   2,   6,   1,   2,   0,   0 ],
-    [ 123,  29,   0,   0,   1,   7,  57,  30,   0,   0,   0,   1,   0,   1,   0,   1,   0,   1,   0,   0 ],
-    [  13,  14,   0,   0,   4,  20, 175,  20,   0,   0,   0,   1,   0,   1,   0,   1,   1,   1,   0,   0 ],
-    [ 202,  23,   0,   0,   1,   3,   2,   9,   0,   0,   0,   1,   0,   1,   0,   1,   0,   0,   0,   0 ],
-  ]
+    [
+        [
+            9, 15, 32, 25, 7, 19, 9, 21, 1, 12, 14, 12, 3, 18, 14, 23, 3, 10, 0, 4,
+        ],
+        [
+            48, 39, 1, 2, 11, 27, 29, 44, 7, 27, 1, 4, 0, 3, 1, 6, 1, 2, 0, 0,
+        ],
+        [
+            21, 32, 1, 2, 4, 10, 32, 43, 6, 23, 2, 3, 1, 19, 1, 6, 12, 21, 0, 7,
+        ],
+        [
+            69, 83, 0, 0, 0, 2, 10, 29, 3, 12, 0, 1, 0, 3, 0, 3, 2, 2, 0, 0,
+        ],
+        [
+            11, 20, 1, 4, 18, 36, 43, 48, 13, 35, 0, 2, 0, 5, 3, 12, 1, 2, 0, 0,
+        ],
+        [
+            70, 44, 0, 1, 2, 10, 37, 46, 8, 26, 0, 2, 0, 2, 0, 2, 0, 1, 0, 0,
+        ],
+        [
+            8, 15, 0, 1, 8, 21, 74, 53, 22, 42, 0, 1, 0, 2, 0, 3, 1, 2, 0, 0,
+        ],
+        [
+            141, 42, 0, 0, 1, 4, 11, 24, 1, 11, 0, 1, 0, 1, 0, 2, 0, 0, 0, 0,
+        ],
+        [
+            8, 19, 4, 10, 24, 45, 21, 37, 9, 29, 0, 3, 1, 7, 11, 25, 0, 2, 0, 1,
+        ],
+        [
+            46, 42, 0, 1, 2, 10, 54, 51, 10, 30, 0, 2, 0, 2, 0, 1, 0, 1, 0, 0,
+        ],
+        [
+            28, 32, 0, 0, 3, 10, 75, 51, 14, 33, 0, 1, 0, 2, 0, 1, 1, 2, 0, 0,
+        ],
+        [
+            100, 46, 0, 1, 3, 9, 21, 37, 5, 20, 0, 1, 0, 2, 1, 2, 0, 1, 0, 0,
+        ],
+        [
+            27, 29, 0, 1, 9, 25, 53, 51, 12, 34, 0, 1, 0, 3, 1, 5, 0, 2, 0, 0,
+        ],
+        [
+            80, 38, 0, 0, 1, 4, 69, 33, 5, 16, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0,
+        ],
+        [
+            16, 20, 0, 0, 2, 8, 104, 49, 15, 33, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0,
+        ],
+        [
+            194, 16, 0, 0, 1, 1, 1, 9, 1, 3, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0,
+        ],
+    ],
+    [
+        [
+            41, 22, 1, 0, 1, 31, 0, 0, 0, 0, 0, 1, 1, 7, 0, 1, 98, 25, 4, 10,
+        ],
+        [
+            123, 37, 6, 4, 1, 27, 0, 0, 0, 0, 5, 8, 1, 7, 0, 1, 12, 10, 0, 2,
+        ],
+        [
+            26, 14, 14, 12, 0, 24, 0, 0, 0, 0, 55, 17, 1, 9, 0, 36, 5, 7, 1, 3,
+        ],
+        [
+            209, 5, 0, 0, 0, 27, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0,
+        ],
+        [2, 5, 4, 5, 0, 121, 0, 0, 0, 0, 0, 3, 2, 4, 1, 4, 2, 2, 0, 1],
+        [
+            175, 5, 0, 1, 0, 48, 0, 0, 0, 0, 0, 2, 0, 1, 0, 2, 0, 1, 0, 0,
+        ],
+        [
+            83, 5, 2, 3, 0, 102, 0, 0, 0, 0, 1, 3, 0, 2, 0, 1, 0, 0, 0, 0,
+        ],
+        [233, 6, 0, 0, 0, 8, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0],
+        [
+            34, 16, 112, 21, 1, 28, 0, 0, 0, 0, 6, 8, 1, 7, 0, 3, 2, 5, 0, 2,
+        ],
+        [
+            159, 35, 2, 2, 0, 25, 0, 0, 0, 0, 3, 6, 0, 5, 0, 1, 4, 4, 0, 1,
+        ],
+        [
+            75, 39, 5, 7, 2, 48, 0, 0, 0, 0, 3, 11, 2, 16, 1, 4, 7, 10, 0, 2,
+        ],
+        [
+            212, 21, 0, 1, 0, 9, 0, 0, 0, 0, 1, 2, 0, 2, 0, 0, 2, 2, 0, 0,
+        ],
+        [4, 2, 0, 0, 0, 172, 0, 0, 0, 0, 0, 1, 0, 2, 0, 0, 2, 0, 0, 0],
+        [
+            187, 22, 1, 1, 0, 17, 0, 0, 0, 0, 3, 6, 0, 4, 0, 1, 4, 4, 0, 1,
+        ],
+        [
+            133, 6, 1, 2, 1, 70, 0, 0, 0, 0, 0, 2, 0, 4, 0, 3, 1, 1, 0, 0,
+        ],
+        [251, 1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ],
+    [
+        [2, 3, 2, 3, 0, 2, 0, 2, 0, 0, 11, 4, 1, 4, 0, 2, 3, 2, 0, 4],
+        [
+            49, 46, 3, 4, 7, 31, 42, 41, 0, 0, 2, 6, 1, 7, 1, 4, 2, 4, 0, 1,
+        ],
+        [
+            26, 25, 1, 1, 2, 10, 67, 39, 0, 0, 1, 1, 0, 14, 0, 2, 31, 26, 1, 6,
+        ],
+        [
+            103, 46, 1, 2, 2, 10, 33, 42, 0, 0, 1, 4, 0, 3, 0, 1, 1, 3, 0, 0,
+        ],
+        [
+            14, 31, 9, 13, 14, 54, 22, 29, 0, 0, 2, 6, 4, 18, 6, 13, 1, 5, 0, 1,
+        ],
+        [
+            85, 39, 0, 0, 1, 9, 69, 40, 0, 0, 0, 1, 0, 3, 0, 1, 2, 3, 0, 0,
+        ],
+        [
+            31, 28, 0, 0, 3, 14, 130, 34, 0, 0, 0, 1, 0, 3, 0, 1, 3, 3, 0, 1,
+        ],
+        [
+            171, 25, 0, 0, 1, 5, 25, 21, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+            17, 21, 68, 29, 6, 15, 13, 22, 0, 0, 6, 12, 3, 14, 4, 10, 1, 7, 0, 3,
+        ],
+        [
+            51, 39, 0, 1, 2, 12, 91, 44, 0, 0, 0, 2, 0, 3, 0, 1, 2, 3, 0, 1,
+        ],
+        [
+            81, 25, 0, 0, 2, 9, 106, 26, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0,
+        ],
+        [
+            140, 37, 0, 1, 1, 8, 24, 33, 0, 0, 1, 2, 0, 2, 0, 1, 1, 2, 0, 0,
+        ],
+        [
+            14, 23, 1, 3, 11, 53, 90, 31, 0, 0, 0, 3, 1, 5, 2, 6, 1, 2, 0, 0,
+        ],
+        [
+            123, 29, 0, 0, 1, 7, 57, 30, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0,
+        ],
+        [
+            13, 14, 0, 0, 4, 20, 175, 20, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0,
+        ],
+        [
+            202, 23, 0, 0, 1, 3, 2, 9, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0,
+        ],
+    ],
 ];

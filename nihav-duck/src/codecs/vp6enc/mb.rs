@@ -1,9 +1,9 @@
-use nihav_core::frame::*;
-use nihav_codec_support::codecs::{MV, ZERO_MV};
 use super::super::vpcommon::*;
-use super::VP56DCPred;
 use super::dsp::*;
 use super::rdo::*;
+use super::VP56DCPred;
+use nihav_codec_support::codecs::{MV, ZERO_MV};
+use nihav_core::frame::*;
 
 /*#[cfg(debug_assertions)]
 use std::io::Write;
@@ -28,7 +28,7 @@ pub type Coeffs = [[i16; 64]; 6];
 
 #[derive(Clone)]
 pub struct ResidueMB {
-    pub coeffs:     Coeffs,
+    pub coeffs: Coeffs,
 }
 
 impl ResidueMB {
@@ -73,9 +73,17 @@ impl ResidueMB {
     }
     fn dequant_from(&mut self, src: &Self, q: usize) {
         for (dblk, sblk) in self.coeffs.iter_mut().zip(src.coeffs.iter()) {
-            dblk[0] = if sblk[0] != 0 { sblk[0] * VP56_DC_QUANTS[q] * 4 } else { 0 };
+            dblk[0] = if sblk[0] != 0 {
+                sblk[0] * VP56_DC_QUANTS[q] * 4
+            } else {
+                0
+            };
             for (dcoef, &scoef) in dblk[1..].iter_mut().zip(sblk[1..].iter()) {
-                *dcoef = if scoef != 0 { scoef * VP56_AC_QUANTS[q] * 4 } else { 0 };
+                *dcoef = if scoef != 0 {
+                    scoef * VP56_AC_QUANTS[q] * 4
+                } else {
+                    0
+                };
             }
         }
     }
@@ -90,72 +98,57 @@ impl ResidueMB {
 
 #[derive(Clone)]
 pub struct InterMB {
-    pub residue:    ResidueMB,
-    pub reference:  Coeffs,
-    pub mv:         [MV; 4],
+    pub residue: ResidueMB,
+    pub reference: Coeffs,
+    pub mv: [MV; 4],
 }
 
 impl InterMB {
     fn new() -> Self {
         Self {
-            residue:    ResidueMB::new(),
-            reference:  [[0; 64]; 6],
-            mv:         [ZERO_MV; 4],
+            residue: ResidueMB::new(),
+            reference: [[0; 64]; 6],
+            mv: [ZERO_MV; 4],
         }
     }
 }
 
 const VP56_DC_QUANTS: [i16; 64] = [
-    47, 47, 47, 47, 45, 43, 43, 43,
-    43, 43, 42, 41, 41, 40, 40, 40,
-    40, 35, 35, 35, 35, 33, 33, 33,
-    33, 32, 32, 32, 27, 27, 26, 26,
-    25, 25, 24, 24, 23, 23, 19, 19,
-    19, 19, 18, 18, 17, 16, 16, 16,
-    16, 16, 15, 11, 11, 11, 10, 10,
-     9,  8,  7,  5,  3,  3,  2,  2
+    47, 47, 47, 47, 45, 43, 43, 43, 43, 43, 42, 41, 41, 40, 40, 40, 40, 35, 35, 35, 35, 33, 33, 33,
+    33, 32, 32, 32, 27, 27, 26, 26, 25, 25, 24, 24, 23, 23, 19, 19, 19, 19, 18, 18, 17, 16, 16, 16,
+    16, 16, 15, 11, 11, 11, 10, 10, 9, 8, 7, 5, 3, 3, 2, 2,
 ];
 const VP56_AC_QUANTS: [i16; 64] = [
-    94, 92, 90, 88, 86, 82, 78, 74,
-    70, 66, 62, 58, 54, 53, 52, 51,
-    50, 49, 48, 47, 46, 45, 44, 43,
-    42, 40, 39, 37, 36, 35, 34, 33,
-    32, 31, 30, 29, 28, 27, 26, 25,
-    24, 23, 22, 21, 20, 19, 18, 17,
-    16, 15, 14, 13, 12, 11, 10,  9,
-     8,  7,  6,  5,  4,  3,  2,  1
+    94, 92, 90, 88, 86, 82, 78, 74, 70, 66, 62, 58, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43,
+    42, 40, 39, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17,
+    16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1,
 ];
 
 const VP56_FILTER_LIMITS: [u8; 64] = [
-    14, 14, 13, 13, 12, 12, 10, 10,
-    10, 10,  8,  8,  8,  8,  8,  8,
-     8,  8,  8,  8,  8,  8,  8,  8,
-     8,  8,  8,  8,  8,  8,  8,  8,
-     8,  8,  8,  8,  7,  7,  7,  7,
-     7,  7,  6,  6,  6,  6,  6,  6,
-     5,  5,  5,  5,  4,  4,  4,  4,
-     4,  4,  4,  3,  3,  3,  3,  2
+    14, 14, 13, 13, 12, 12, 10, 10, 10, 10, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    8, 8, 8, 8, 8, 8, 8, 8, 7, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 3,
+    3, 3, 3, 2,
 ];
 
 #[derive(Default)]
 pub struct FrameEncoder {
-    pub quant:      usize,
-    pub src_mbs:    Vec<ResidueMB>,
-    pub intra_mbs:  Vec<ResidueMB>,
-    pub inter_mbs:  Vec<InterMB>,
+    pub quant: usize,
+    pub src_mbs: Vec<ResidueMB>,
+    pub intra_mbs: Vec<ResidueMB>,
+    pub inter_mbs: Vec<InterMB>,
     pub fourmv_mbs: Vec<InterMB>,
     pub golden_mbs: Vec<InterMB>,
 
-    pub mb_types:   Vec<VPMBType>,
-    pub num_mv:     Vec<u8>,
-    pub coded_mv:   Vec<[MV; 4]>,
-    pub fmv_sub:    Vec<[VPMBType; 4]>,
+    pub mb_types: Vec<VPMBType>,
+    pub num_mv: Vec<u8>,
+    pub coded_mv: Vec<[MV; 4]>,
+    pub fmv_sub: Vec<[VPMBType; 4]>,
 
-    pub mb_w:       usize,
-    pub mb_h:       usize,
+    pub mb_w: usize,
+    pub mb_h: usize,
 
-    pub me_mode:    MVSearchMode,
-    pub me_range:   i16,
+    pub me_mode: MVSearchMode,
+    pub me_range: i16,
 }
 
 macro_rules! read_block {
@@ -165,7 +158,7 @@ macro_rules! read_block {
                 *dst = i16::from(src);
             }
         }
-    }
+    };
 }
 
 macro_rules! write_block {
@@ -173,11 +166,13 @@ macro_rules! write_block {
         for (drow, srow) in $dst.chunks_mut($stride).take(8).zip($src.chunks(8)) {
             drow[..8].copy_from_slice(srow);
         }
-    }
+    };
 }
 
 impl FrameEncoder {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
     pub fn resize(&mut self, mb_w: usize, mb_h: usize) {
         self.mb_w = mb_w;
         self.mb_h = mb_h;
@@ -203,7 +198,9 @@ impl FrameEncoder {
         self.fmv_sub.clear();
         self.fmv_sub.reserve(num_mbs);
     }
-    pub fn set_quant(&mut self, quant: usize) { self.quant = quant; }
+    pub fn set_quant(&mut self, quant: usize) {
+        self.quant = quant;
+    }
     pub fn read_mbs(&mut self, vbuf: &NAVideoBuffer<u8>) {
         let src = vbuf.get_data();
         let y = &src[vbuf.get_offset(0)..];
@@ -215,14 +212,17 @@ impl FrameEncoder {
         let (w, _) = vbuf.get_dimensions(0);
 
         self.src_mbs.clear();
-        for (ys, (us, vs)) in y.chunks(ystride * 16).zip(u.chunks(ustride * 8).zip(v.chunks(vstride * 8))) {
+        for (ys, (us, vs)) in y
+            .chunks(ystride * 16)
+            .zip(u.chunks(ustride * 8).zip(v.chunks(vstride * 8)))
+        {
             for x in (0..w).step_by(16) {
                 let mut mb = ResidueMB::new();
                 for (i, blk) in mb.coeffs[..4].iter_mut().enumerate() {
                     read_block!(blk, ys[x + (i & 1) * 8 + (i >> 1) * 8 * ystride..], ystride);
                 }
-                read_block!(mb.coeffs[4], us[x/2..], ustride);
-                read_block!(mb.coeffs[5], vs[x/2..], vstride);
+                read_block!(mb.coeffs[4], us[x / 2..], ustride);
+                read_block!(mb.coeffs[5], vs[x / 2..], vstride);
                 self.src_mbs.push(mb);
             }
         }
@@ -260,25 +260,34 @@ impl FrameEncoder {
                     }
                 } else {
                     let res_mb = match mb_type.get_ref_id() {
-                            0 => unreachable!(),
-                            1 => if mb_type != VPMBType::InterFourMV {
-                                    &self.inter_mbs[mb_pos].reference
-                                } else {
-                                    &self.fourmv_mbs[mb_pos].reference
-                                },
-                            _ => &self.golden_mbs[mb_pos].reference,
-                        };
+                        0 => unreachable!(),
+                        1 => {
+                            if mb_type != VPMBType::InterFourMV {
+                                &self.inter_mbs[mb_pos].reference
+                            } else {
+                                &self.fourmv_mbs[mb_pos].reference
+                            }
+                        }
+                        _ => &self.golden_mbs[mb_pos].reference,
+                    };
 
-                    for (dblk, (sblk1, sblk2)) in blocks.iter_mut().zip(mb.coeffs.iter().zip(res_mb.iter())) {
-                        for (dcoef, (&scoef1, &scoef2)) in dblk.iter_mut().zip(sblk1.iter().zip(sblk2.iter())) {
+                    for (dblk, (sblk1, sblk2)) in
+                        blocks.iter_mut().zip(mb.coeffs.iter().zip(res_mb.iter()))
+                    {
+                        for (dcoef, (&scoef1, &scoef2)) in
+                            dblk.iter_mut().zip(sblk1.iter().zip(sblk2.iter()))
+                        {
                             *dcoef = (scoef1 + scoef2).max(0).min(255) as u8;
                         }
                     }
                 }
 
                 for i in 0..4 {
-                    write_block!(&mut dst[yoff + mb_x * 16 + (i & 1) * 8 + (i >> 1) * 8 * ystride..],
-                                 blocks[i], ystride);
+                    write_block!(
+                        &mut dst[yoff + mb_x * 16 + (i & 1) * 8 + (i >> 1) * 8 * ystride..],
+                        blocks[i],
+                        ystride
+                    );
                 }
                 write_block!(&mut dst[uoff + mb_x * 8..], blocks[4], ustride);
                 write_block!(&mut dst[voff + mb_x * 8..], blocks[5], vstride);
@@ -298,11 +307,13 @@ impl FrameEncoder {
         let mb_type = self.mb_types[mb_pos];
         match mb_type.get_ref_id() {
             0 => &self.intra_mbs[mb_pos],
-            1 => if mb_type != VPMBType::InterFourMV {
+            1 => {
+                if mb_type != VPMBType::InterFourMV {
                     &self.inter_mbs[mb_pos].residue
                 } else {
                     &self.fourmv_mbs[mb_pos].residue
-                },
+                }
+            }
             _ => &self.golden_mbs[mb_pos].residue,
         }
     }
@@ -310,11 +321,13 @@ impl FrameEncoder {
         let mb_type = self.mb_types[mb_pos];
         match mb_type.get_ref_id() {
             0 => &mut self.intra_mbs[mb_pos],
-            1 => if mb_type != VPMBType::InterFourMV {
+            1 => {
+                if mb_type != VPMBType::InterFourMV {
                     &mut self.inter_mbs[mb_pos].residue
                 } else {
                     &mut self.fourmv_mbs[mb_pos].residue
-                },
+                }
+            }
             _ => &mut self.golden_mbs[mb_pos].residue,
         }
     }
@@ -333,19 +346,32 @@ impl FrameEncoder {
         }
     }
     pub fn prepare_inter_blocks(&mut self, golden: bool) {
-        let inter_mbs = if !golden { &mut self.inter_mbs } else { &mut self.golden_mbs };
+        let inter_mbs = if !golden {
+            &mut self.inter_mbs
+        } else {
+            &mut self.golden_mbs
+        };
         for (mb_idx, mb) in inter_mbs.iter_mut().enumerate() {
             mb.residue.fdct();
             mb.residue.quant(self.quant);
             self.mb_types[mb_idx] = VPMBType::InterMV;
         }
     }
-    pub fn estimate_mvs(&mut self, ref_frame: NAVideoBufferRef<u8>, mc_buf: NAVideoBufferRef<u8>, golden: bool) {
+    pub fn estimate_mvs(
+        &mut self,
+        ref_frame: NAVideoBufferRef<u8>,
+        mc_buf: NAVideoBufferRef<u8>,
+        golden: bool,
+    ) {
         let loop_thr = i16::from(VP56_FILTER_LIMITS[self.quant as usize]);
-        let mut loop_tab : [i16;256] = [0;256];
+        let mut loop_tab: [i16; 256] = [0; 256];
         calc_loop_tab(loop_thr, &mut loop_tab);
 
-        let inter_mbs = if !golden { &mut self.inter_mbs } else { &mut self.golden_mbs };
+        let inter_mbs = if !golden {
+            &mut self.inter_mbs
+        } else {
+            &mut self.golden_mbs
+        };
 
         if inter_mbs.is_empty() {
             for _ in 0..self.mb_w * self.mb_h {
@@ -358,10 +384,10 @@ impl FrameEncoder {
         let mut mv_est = MVEstimator::new(ref_frame, mc_buf, loop_tab, self.me_range);
 
         let mut mv_search: Box<dyn MVSearch> = match self.me_mode {
-                MVSearchMode::Full      => Box::new(FullMVSearch::new()),
-                MVSearchMode::Diamond   => Box::new(DiaSearch::new()),
-                MVSearchMode::Hexagon   => Box::new(HexSearch::new()),
-            };
+            MVSearchMode::Full => Box::new(FullMVSearch::new()),
+            MVSearchMode::Diamond => Box::new(DiaSearch::new()),
+            MVSearchMode::Hexagon => Box::new(HexSearch::new()),
+        };
         let mut mb_pos = 0;
         for (mb_y, row) in inter_mbs.chunks_exact_mut(self.mb_w).enumerate() {
             for (mb_x, mb) in row.iter_mut().enumerate() {
@@ -371,12 +397,22 @@ impl FrameEncoder {
                 mb.mv[3] = best_mv;
 
                 for i in 0..4 {
-                    mv_est.mc_block(i, 0, mb_x * 16 + (i & 1) * 8, mb_y * 16 + (i >> 1) * 8, best_mv);
+                    mv_est.mc_block(
+                        i,
+                        0,
+                        mb_x * 16 + (i & 1) * 8,
+                        mb_y * 16 + (i >> 1) * 8,
+                        best_mv,
+                    );
                     sub_blk(&mut mb.residue.coeffs[i], &cur_blk[i], &mv_est.ref_blk[i]);
                 }
                 for plane in 1..3 {
                     mv_est.mc_block(plane + 3, plane, mb_x * 8, mb_y * 8, best_mv);
-                    sub_blk(&mut mb.residue.coeffs[plane + 3], &cur_blk[plane + 3], &mv_est.ref_blk[plane + 3]);
+                    sub_blk(
+                        &mut mb.residue.coeffs[plane + 3],
+                        &cur_blk[plane + 3],
+                        &mv_est.ref_blk[plane + 3],
+                    );
                 }
 
                 for (dblk, sblk) in mb.reference.iter_mut().zip(mv_est.ref_blk.iter()) {
@@ -388,9 +424,15 @@ impl FrameEncoder {
             }
         }
     }
-    fn estimate_fourmv(&mut self, ref_frame: NAVideoBufferRef<u8>, mc_buf: NAVideoBufferRef<u8>, mb_x: usize, mb_y: usize) -> bool {
+    fn estimate_fourmv(
+        &mut self,
+        ref_frame: NAVideoBufferRef<u8>,
+        mc_buf: NAVideoBufferRef<u8>,
+        mb_x: usize,
+        mb_y: usize,
+    ) -> bool {
         let loop_thr = i16::from(VP56_FILTER_LIMITS[self.quant as usize]);
-        let mut loop_tab : [i16;256] = [0;256];
+        let mut loop_tab: [i16; 256] = [0; 256];
         calc_loop_tab(loop_thr, &mut loop_tab);
 
         if self.fourmv_mbs.is_empty() {
@@ -399,7 +441,8 @@ impl FrameEncoder {
             }
         }
         if self.fmv_sub.is_empty() {
-            self.fmv_sub.resize(self.mb_w * self.mb_h, [VPMBType::Intra; 4]);
+            self.fmv_sub
+                .resize(self.mb_w * self.mb_h, [VPMBType::Intra; 4]);
         }
 
         let mb_pos = mb_x + mb_y * self.mb_w;
@@ -411,29 +454,36 @@ impl FrameEncoder {
         let mut mv_est = MVEstimator::new(ref_frame, mc_buf, loop_tab, self.me_range);
 
         let mut mv_search: Box<dyn MVSearch> = match self.me_mode {
-                MVSearchMode::Full      => Box::new(FullMVSearch::new()),
-                MVSearchMode::Diamond   => Box::new(DiaSearch::new()),
-                MVSearchMode::Hexagon   => Box::new(HexSearch::new()),
-            };
+            MVSearchMode::Full => Box::new(FullMVSearch::new()),
+            MVSearchMode::Diamond => Box::new(DiaSearch::new()),
+            MVSearchMode::Hexagon => Box::new(HexSearch::new()),
+        };
 
         for i in 0..4 {
-            let xpos = mb_x * 16 + (i &  1) * 8;
+            let xpos = mb_x * 16 + (i & 1) * 8;
             let ypos = mb_y * 16 + (i >> 1) * 8;
             let (best_mv, _best_dist) = mv_search.search_blk(&mut mv_est, &cur_blk[i], xpos, ypos);
             mb.mv[i] = best_mv;
         }
         let mvsum = mb.mv[0] + mb.mv[1] + mb.mv[2] + mb.mv[3];
-        let chroma_mv = MV{ x: mvsum.x / 4, y: mvsum.y / 4};
+        let chroma_mv = MV {
+            x: mvsum.x / 4,
+            y: mvsum.y / 4,
+        };
 
         for (i, blk) in mb.residue.coeffs[..4].iter_mut().enumerate() {
-            let xpos = mb_x * 16 + (i &  1) * 8;
+            let xpos = mb_x * 16 + (i & 1) * 8;
             let ypos = mb_y * 16 + (i >> 1) * 8;
             mv_est.mc_block(i, 0, xpos, ypos, mb.mv[i]);
             sub_blk(blk, &cur_blk[i], &mv_est.ref_blk[i]);
         }
         for plane in 1..3 {
             mv_est.mc_block(plane + 3, plane, mb_x * 8, mb_y * 8, chroma_mv);
-            sub_blk(&mut mb.residue.coeffs[plane + 3], &cur_blk[plane + 3], &mv_est.ref_blk[plane + 3]);
+            sub_blk(
+                &mut mb.residue.coeffs[plane + 3],
+                &cur_blk[plane + 3],
+                &mv_est.ref_blk[plane + 3],
+            );
         }
 
         for (dblk, sblk) in mb.reference.iter_mut().zip(mv_est.ref_blk.iter()) {
@@ -444,7 +494,13 @@ impl FrameEncoder {
 
         (mb.mv[0] != mb.mv[1]) || (mb.mv[0] != mb.mv[2]) || (mb.mv[0] != mb.mv[3])
     }
-    pub fn select_inter_blocks(&mut self, ref_frame: NAVideoBufferRef<u8>, mc_buf: NAVideoBufferRef<u8>, has_golden_frame: bool, lambda: f32) {
+    pub fn select_inter_blocks(
+        &mut self,
+        ref_frame: NAVideoBufferRef<u8>,
+        mc_buf: NAVideoBufferRef<u8>,
+        has_golden_frame: bool,
+        lambda: f32,
+    ) {
         let mut tmp_mb = ResidueMB::new();
         for mb_idx in 0..self.mb_w * self.mb_h {
             tmp_mb.dequant_from(&self.intra_mbs[mb_idx], self.quant);
@@ -460,7 +516,11 @@ impl FrameEncoder {
 
             tmp_mb.dequant_from(&self.inter_mbs[mb_idx].residue, self.quant);
             tmp_mb.idct();
-            for (blk, res) in tmp_mb.coeffs.iter_mut().zip(self.inter_mbs[mb_idx].reference.iter()) {
+            for (blk, res) in tmp_mb
+                .coeffs
+                .iter_mut()
+                .zip(self.inter_mbs[mb_idx].reference.iter())
+            {
                 for (coef, add) in blk.iter_mut().zip(res.iter()) {
                     *coef = (*coef + add).max(0).min(255);
                 }
@@ -476,19 +536,29 @@ impl FrameEncoder {
                 self.mb_types[mb_idx] = VPMBType::InterMV;
 
                 if inter_dist > 512 {
-                    self.estimate_fourmv(ref_frame.clone(), mc_buf.clone(), mb_idx % self.mb_w, mb_idx / self.mb_w);
+                    self.estimate_fourmv(
+                        ref_frame.clone(),
+                        mc_buf.clone(),
+                        mb_idx % self.mb_w,
+                        mb_idx / self.mb_w,
+                    );
                     self.fourmv_mbs[mb_idx].residue.fdct();
                     self.fourmv_mbs[mb_idx].residue.quant(self.quant);
 
                     tmp_mb.dequant_from(&self.fourmv_mbs[mb_idx].residue, self.quant);
                     tmp_mb.idct();
-                    for (blk, res) in tmp_mb.coeffs.iter_mut().zip(self.fourmv_mbs[mb_idx].reference.iter()) {
+                    for (blk, res) in tmp_mb
+                        .coeffs
+                        .iter_mut()
+                        .zip(self.fourmv_mbs[mb_idx].reference.iter())
+                    {
                         for (coef, add) in blk.iter_mut().zip(res.iter()) {
                             *coef = (*coef + add).max(0).min(255);
                         }
                     }
                     let fourmv_dist = calc_mb_dist(&self.src_mbs[mb_idx], &tmp_mb);
-                    let fourmv_nits = estimate_inter_mb_nits(&self.fourmv_mbs[mb_idx], self.quant, true);
+                    let fourmv_nits =
+                        estimate_inter_mb_nits(&self.fourmv_mbs[mb_idx], self.quant, true);
                     let fourmv_cost = (fourmv_dist as f32) + lambda * (fourmv_nits as f32);
                     if fourmv_cost < inter_cost {
                         self.mb_types[mb_idx] = VPMBType::InterFourMV;
@@ -500,17 +570,23 @@ impl FrameEncoder {
             if has_golden_frame {
                 tmp_mb.dequant_from(&self.golden_mbs[mb_idx].residue, self.quant);
                 tmp_mb.idct();
-                for (blk, res) in tmp_mb.coeffs.iter_mut().zip(self.golden_mbs[mb_idx].reference.iter()) {
+                for (blk, res) in tmp_mb
+                    .coeffs
+                    .iter_mut()
+                    .zip(self.golden_mbs[mb_idx].reference.iter())
+                {
                     for (coef, add) in blk.iter_mut().zip(res.iter()) {
                         *coef = (*coef + add).max(0).min(255);
                     }
                 }
                 let golden_dist = calc_mb_dist(&self.src_mbs[mb_idx], &tmp_mb);
-                let golden_nits = estimate_inter_mb_nits(&self.golden_mbs[mb_idx], self.quant, false);
+                let golden_nits =
+                    estimate_inter_mb_nits(&self.golden_mbs[mb_idx], self.quant, false);
                 let golden_cost = (golden_dist as f32) + lambda * (golden_nits as f32);
 
-                if (self.mb_types[mb_idx].is_intra() && golden_cost < intra_cost) ||
-                    (!self.mb_types[mb_idx].is_intra() && golden_cost < inter_cost) {
+                if (self.mb_types[mb_idx].is_intra() && golden_cost < intra_cost)
+                    || (!self.mb_types[mb_idx].is_intra() && golden_cost < inter_cost)
+                {
                     self.mb_types[mb_idx] = VPMBType::GoldenMV;
                 }
             }
@@ -518,7 +594,7 @@ impl FrameEncoder {
     }
     pub fn decide_frame_type(&self) -> (bool, bool) {
         let mut intra_count = 0usize;
-        let mut non_intra   = 0usize;
+        let mut non_intra = 0usize;
         for mb_type in self.mb_types.iter() {
             if mb_type.is_intra() {
                 intra_count += 1;
@@ -530,12 +606,18 @@ impl FrameEncoder {
     }
     fn find_mv_pred(&self, mb_x: usize, mb_y: usize, ref_id: u8) -> (usize, MV, MV, MV) {
         const CAND_POS: [(i8, i8); 12] = [
-            (-1,  0), ( 0, -1),
-            (-1, -1), (-1,  1),
-            (-2,  0), ( 0, -2),
-            (-1, -2), (-2, -1),
-            (-2,  1), (-1,  2),
-            (-2, -2), (-2,  2)
+            (-1, 0),
+            (0, -1),
+            (-1, -1),
+            (-1, 1),
+            (-2, 0),
+            (0, -2),
+            (-1, -2),
+            (-2, -1),
+            (-2, 1),
+            (-1, 2),
+            (-2, -2),
+            (-2, 2),
         ];
 
         let mut nearest_mv = ZERO_MV;
@@ -556,14 +638,16 @@ impl FrameEncoder {
             }
             let mb_pos = cx + cy * self.mb_w;
             let mv = match self.mb_types[mb_pos].get_ref_id() {
-                    0 => ZERO_MV,
-                    1 => if self.mb_types[mb_pos] != VPMBType::InterFourMV {
-                            self.inter_mbs[mb_pos].mv[3]
-                        } else {
-                            self.fourmv_mbs[mb_pos].mv[3]
-                        },
-                    _ => self.golden_mbs[mb_pos].mv[3],
-                };
+                0 => ZERO_MV,
+                1 => {
+                    if self.mb_types[mb_pos] != VPMBType::InterFourMV {
+                        self.inter_mbs[mb_pos].mv[3]
+                    } else {
+                        self.fourmv_mbs[mb_pos].mv[3]
+                    }
+                }
+                _ => self.golden_mbs[mb_pos].mv[3],
+            };
             if (self.mb_types[mb_pos].get_ref_id() != ref_id) || (mv == ZERO_MV) {
                 continue;
             }
@@ -590,105 +674,111 @@ impl FrameEncoder {
         }
         for mb_y in 0..self.mb_h {
             for mb_x in 0..self.mb_w {
-                let (num_mv, nearest_mv, near_mv, pred_mv) = self.find_mv_pred(mb_x, mb_y, VP_REF_INTER);
+                let (num_mv, nearest_mv, near_mv, pred_mv) =
+                    self.find_mv_pred(mb_x, mb_y, VP_REF_INTER);
                 let mb_type = self.mb_types[mb_idx];
                 self.num_mv.push(num_mv as u8);
                 let golden = mb_type.get_ref_id() == VP_REF_GOLDEN;
-                let mv = if !golden { self.inter_mbs[mb_idx].mv[3] } else { self.golden_mbs[mb_idx].mv[3] };
+                let mv = if !golden {
+                    self.inter_mbs[mb_idx].mv[3]
+                } else {
+                    self.golden_mbs[mb_idx].mv[3]
+                };
 
                 let mb_type = if mb_type == VPMBType::Intra {
-                        VPMBType::Intra
-                    } else if mb_type == VPMBType::InterFourMV {
-                        for i in 0..4 {
-                            let mv = self.fourmv_mbs[mb_idx].mv[i];
-                            self.coded_mv[mb_idx][i] = ZERO_MV;
-                            if mv == ZERO_MV {
-                                self.fmv_sub[mb_idx][i] = VPMBType::InterNoMV;
+                    VPMBType::Intra
+                } else if mb_type == VPMBType::InterFourMV {
+                    for i in 0..4 {
+                        let mv = self.fourmv_mbs[mb_idx].mv[i];
+                        self.coded_mv[mb_idx][i] = ZERO_MV;
+                        if mv == ZERO_MV {
+                            self.fmv_sub[mb_idx][i] = VPMBType::InterNoMV;
+                        } else {
+                            self.fmv_sub[mb_idx][i] = match num_mv {
+                                0 => {
+                                    self.coded_mv[mb_idx][i] = mv - pred_mv;
+                                    VPMBType::InterMV
+                                }
+                                1 => {
+                                    if nearest_mv == mv {
+                                        VPMBType::InterNearest
+                                    } else {
+                                        self.coded_mv[mb_idx][i] = mv - pred_mv;
+                                        VPMBType::InterMV
+                                    }
+                                }
+                                _ => {
+                                    if nearest_mv == mv {
+                                        VPMBType::InterNearest
+                                    } else if near_mv == mv {
+                                        VPMBType::InterNear
+                                    } else {
+                                        self.coded_mv[mb_idx][i] = mv - pred_mv;
+                                        VPMBType::InterMV
+                                    }
+                                }
+                            };
+                        }
+                    }
+                    VPMBType::InterFourMV
+                } else if mv == ZERO_MV {
+                    if !golden {
+                        VPMBType::InterNoMV
+                    } else {
+                        VPMBType::GoldenNoMV
+                    }
+                } else if mb_type.get_ref_id() == VP_REF_INTER {
+                    self.coded_mv[mb_idx][3] = mv;
+                    match num_mv {
+                        0 => VPMBType::InterMV,
+                        1 => {
+                            if nearest_mv == mv {
+                                VPMBType::InterNearest
                             } else {
-                                self.fmv_sub[mb_idx][i] = match num_mv {
-                                        0 => {
-                                            self.coded_mv[mb_idx][i] = mv - pred_mv;
-                                            VPMBType::InterMV
-                                        },
-                                        1 => {
-                                            if nearest_mv == mv {
-                                                VPMBType::InterNearest
-                                            } else {
-                                                self.coded_mv[mb_idx][i] = mv - pred_mv;
-                                                VPMBType::InterMV
-                                            }
-                                        },
-                                        _ => {
-                                            if nearest_mv == mv {
-                                                VPMBType::InterNearest
-                                            } else if near_mv == mv {
-                                                VPMBType::InterNear
-                                            } else {
-                                                self.coded_mv[mb_idx][i] = mv - pred_mv;
-                                                VPMBType::InterMV
-                                            }
-                                        },
-                                    };
+                                self.coded_mv[mb_idx][3] = mv - pred_mv;
+                                VPMBType::InterMV
                             }
                         }
-                        VPMBType::InterFourMV
-                    } else if mv == ZERO_MV {
-                        if !golden {
-                            VPMBType::InterNoMV
-                        } else {
-                            VPMBType::GoldenNoMV
+                        _ => {
+                            if nearest_mv == mv {
+                                VPMBType::InterNearest
+                            } else if near_mv == mv {
+                                VPMBType::InterNear
+                            } else {
+                                self.coded_mv[mb_idx][3] = mv - pred_mv;
+                                VPMBType::InterMV
+                            }
                         }
-                    } else if mb_type.get_ref_id() == VP_REF_INTER {
-                        self.coded_mv[mb_idx][3] = mv;
-                        match num_mv {
-                            0 => VPMBType::InterMV,
-                            1 => {
-                                if nearest_mv == mv {
-                                    VPMBType::InterNearest
-                                } else {
-                                    self.coded_mv[mb_idx][3] = mv - pred_mv;
-                                    VPMBType::InterMV
-                                }
-                            },
-                            _ => {
-                                if nearest_mv == mv {
-                                    VPMBType::InterNearest
-                                } else if near_mv == mv {
-                                    VPMBType::InterNear
-                                } else {
-                                    self.coded_mv[mb_idx][3] = mv - pred_mv;
-                                    VPMBType::InterMV
-                                }
-                            },
+                    }
+                } else {
+                    let (num_mv, nearest_mv, near_mv, pred_mv) =
+                        self.find_mv_pred(mb_x, mb_y, VP_REF_GOLDEN);
+                    self.coded_mv[mb_idx][3] = ZERO_MV;
+                    match num_mv {
+                        0 => {
+                            self.coded_mv[mb_idx][3] = mv - pred_mv;
+                            VPMBType::GoldenMV
                         }
-                    } else {
-                        let (num_mv, nearest_mv, near_mv, pred_mv) = self.find_mv_pred(mb_x, mb_y, VP_REF_GOLDEN);
-                        self.coded_mv[mb_idx][3] = ZERO_MV;
-                        match num_mv {
-                            0 => {
+                        1 => {
+                            if nearest_mv == mv {
+                                VPMBType::GoldenNearest
+                            } else {
                                 self.coded_mv[mb_idx][3] = mv - pred_mv;
                                 VPMBType::GoldenMV
-                            },
-                            1 => {
-                                if nearest_mv == mv {
-                                    VPMBType::GoldenNearest
-                                } else {
-                                    self.coded_mv[mb_idx][3] = mv - pred_mv;
-                                    VPMBType::GoldenMV
-                                }
-                            },
-                            _ => {
-                                if nearest_mv == mv {
-                                    VPMBType::GoldenNearest
-                                } else if near_mv == mv {
-                                    VPMBType::GoldenNear
-                                } else {
-                                    self.coded_mv[mb_idx][3] = mv - pred_mv;
-                                    VPMBType::GoldenMV
-                                }
-                            },
+                            }
                         }
-                    };
+                        _ => {
+                            if nearest_mv == mv {
+                                VPMBType::GoldenNearest
+                            } else if near_mv == mv {
+                                VPMBType::GoldenNear
+                            } else {
+                                self.coded_mv[mb_idx][3] = mv - pred_mv;
+                                VPMBType::GoldenMV
+                            }
+                        }
+                    }
+                };
                 self.mb_types[mb_idx] = mb_type;
                 mb_idx += 1;
             }

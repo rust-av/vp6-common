@@ -1,13 +1,13 @@
-use nihav_core::frame::*;
-use nihav_codec_support::codecs::{MV, ZERO_MV};
-use super::super::vpcommon::*;
-use super::super::vp6dsp::*;
 use super::super::vp6data::*;
+use super::super::vp6dsp::*;
+use super::super::vpcommon::*;
 use super::ResidueMB;
+use nihav_codec_support::codecs::{MV, ZERO_MV};
+use nihav_core::frame::*;
 
 use std::str::FromStr;
 
-#[derive(Debug,Clone,Copy,PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum MVSearchMode {
     Full,
     Diamond,
@@ -15,10 +15,12 @@ pub enum MVSearchMode {
 }
 
 impl Default for MVSearchMode {
-    fn default() -> Self { MVSearchMode::Hexagon }
+    fn default() -> Self {
+        MVSearchMode::Hexagon
+    }
 }
 
-pub struct ParseError{}
+pub struct ParseError {}
 
 impl FromStr for MVSearchMode {
     type Err = ParseError;
@@ -26,10 +28,10 @@ impl FromStr for MVSearchMode {
     #[allow(clippy::single_match)]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "full"  => Ok(MVSearchMode::Full),
-            "dia"   => Ok(MVSearchMode::Diamond),
-            "hex"   => Ok(MVSearchMode::Hexagon),
-            _ => Err(ParseError{}),
+            "full" => Ok(MVSearchMode::Full),
+            "dia" => Ok(MVSearchMode::Diamond),
+            "hex" => Ok(MVSearchMode::Hexagon),
+            _ => Err(ParseError {}),
         }
     }
 }
@@ -37,13 +39,12 @@ impl FromStr for MVSearchMode {
 impl std::fmt::Display for MVSearchMode {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            MVSearchMode::Full      => write!(f, "full"),
-            MVSearchMode::Diamond   => write!(f, "dia"),
-            MVSearchMode::Hexagon   => write!(f, "hex"),
+            MVSearchMode::Full => write!(f, "full"),
+            MVSearchMode::Diamond => write!(f, "dia"),
+            MVSearchMode::Hexagon => write!(f, "hex"),
         }
     }
 }
-
 
 const C1S7: i32 = 64277;
 const C2S6: i32 = 60547;
@@ -62,21 +63,21 @@ fn mul16(a: i32, b: i32) -> i32 {
 macro_rules! fdct_step {
     ($s0:expr, $s1:expr, $s2:expr, $s3:expr, $s4:expr, $s5:expr, $s6:expr, $s7:expr,
      $d0:expr, $d1:expr, $d2:expr, $d3:expr, $d4:expr, $d5:expr, $d6:expr, $d7:expr) => {
-        let t_g  = i32::from($s0) + i32::from($s7);
-        let t_c  = i32::from($s0) - i32::from($s7);
-        let t_a  = i32::from($s1) + i32::from($s2);
-        let t_h  = i32::from($s1) - i32::from($s2);
+        let t_g = i32::from($s0) + i32::from($s7);
+        let t_c = i32::from($s0) - i32::from($s7);
+        let t_a = i32::from($s1) + i32::from($s2);
+        let t_h = i32::from($s1) - i32::from($s2);
         let t_e1 = i32::from($s3) + i32::from($s4);
-        let t_d  = i32::from($s3) - i32::from($s4);
-        let t_f  = i32::from($s5) + i32::from($s6);
-        let t_b  = i32::from($s5) - i32::from($s6);
+        let t_d = i32::from($s3) - i32::from($s4);
+        let t_f = i32::from($s5) + i32::from($s6);
+        let t_b = i32::from($s5) - i32::from($s6);
 
         let t_b1 = t_h + t_b;
-        let t_h  = t_h - t_b;
+        let t_h = t_h - t_b;
         let t_a1 = t_a - t_f;
-        let t_f  = t_a + t_f;
-        let t_e  = t_g + t_e1;
-        let t_g  = t_g - t_e1;
+        let t_f = t_a + t_f;
+        let t_e = t_g + t_e1;
+        let t_g = t_g - t_e1;
 
         $d2 = (mul16(C2S6, t_g) + mul16(C6S2, t_h)).max(-32768).min(32767) as i16;
         $d6 = (mul16(C6S2, t_g) - mul16(C2S6, t_h)).max(-32768).min(32767) as i16;
@@ -90,21 +91,37 @@ macro_rules! fdct_step {
         $d5 = (mul16(C5S3, t_c) + mul16(C3S5, t_d)).max(-32768).min(32767) as i16;
         $d1 = (mul16(C1S7, t_a) + mul16(C7S1, t_b)).max(-32768).min(32767) as i16;
         $d7 = (mul16(C7S1, t_a) - mul16(C1S7, t_b)).max(-32768).min(32767) as i16;
-    }
+    };
 }
 
 #[allow(clippy::erasing_op)]
 pub fn vp_fdct(blk: &mut [i16; 64]) {
     for i in 0..8 {
         let row = &mut blk[(i * 8)..(i * 8) + 8];
-        fdct_step!(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7],
-                   row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7]);
+        fdct_step!(
+            row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[0], row[1], row[2],
+            row[3], row[4], row[5], row[6], row[7]
+        );
     }
     for i in 0..8 {
-        fdct_step!(blk[0 * 8 + i], blk[1 * 8 + i], blk[2 * 8 + i], blk[3 * 8 + i],
-                   blk[4 * 8 + i], blk[5 * 8 + i], blk[6 * 8 + i], blk[7 * 8 + i],
-                   blk[0 * 8 + i], blk[1 * 8 + i], blk[2 * 8 + i], blk[3 * 8 + i],
-                   blk[4 * 8 + i], blk[5 * 8 + i], blk[6 * 8 + i], blk[7 * 8 + i]);
+        fdct_step!(
+            blk[0 * 8 + i],
+            blk[1 * 8 + i],
+            blk[2 * 8 + i],
+            blk[3 * 8 + i],
+            blk[4 * 8 + i],
+            blk[5 * 8 + i],
+            blk[6 * 8 + i],
+            blk[7 * 8 + i],
+            blk[0 * 8 + i],
+            blk[1 * 8 + i],
+            blk[2 * 8 + i],
+            blk[3 * 8 + i],
+            blk[4 * 8 + i],
+            blk[5 * 8 + i],
+            blk[6 * 8 + i],
+            blk[7 * 8 + i]
+        );
     }
 }
 
@@ -117,32 +134,63 @@ trait FromPixels {
 
 impl FromPixels for MV {
     fn from_pixels(self) -> MV {
-        MV { x: self.x * 4, y: self.y * 4 }
+        MV {
+            x: self.x * 4,
+            y: self.y * 4,
+        }
     }
 }
 
 pub trait MVSearch {
-    fn search_mb(&mut self, mv_est: &mut MVEstimator, cur_blk: &[[u8; 64]; 6], mb_x: usize, mb_y: usize) -> (MV, u32);
-    fn search_blk(&mut self, mv_est: &mut MVEstimator, cur_blk: &[u8; 64], xpos: usize, ypos: usize) -> (MV, u32);
+    fn search_mb(
+        &mut self,
+        mv_est: &mut MVEstimator,
+        cur_blk: &[[u8; 64]; 6],
+        mb_x: usize,
+        mb_y: usize,
+    ) -> (MV, u32);
+    fn search_blk(
+        &mut self,
+        mv_est: &mut MVEstimator,
+        cur_blk: &[u8; 64],
+        xpos: usize,
+        ypos: usize,
+    ) -> (MV, u32);
 }
 
 pub struct FullMVSearch {}
 
 impl FullMVSearch {
-    pub fn new() -> Self { Self{} }
+    pub fn new() -> Self {
+        Self {}
+    }
 }
 
 impl MVSearch for FullMVSearch {
-    fn search_mb(&mut self, mv_est: &mut MVEstimator, cur_blk: &[[u8; 64]; 6], mb_x: usize, mb_y: usize) -> (MV, u32) {
+    fn search_mb(
+        &mut self,
+        mv_est: &mut MVEstimator,
+        cur_blk: &[[u8; 64]; 6],
+        mb_x: usize,
+        mb_y: usize,
+    ) -> (MV, u32) {
         let mut best_dist = MAX_DIST;
         let mut best_mv = ZERO_MV;
 
         let mut cur_mv = ZERO_MV;
         for ytry in 0..mv_est.mv_range * 2 + 1 {
-            let dy = if (ytry & 1) == 0 { ytry >> 1 } else { -((ytry + 1) >> 1) };
+            let dy = if (ytry & 1) == 0 {
+                ytry >> 1
+            } else {
+                -((ytry + 1) >> 1)
+            };
             cur_mv.y = dy * 4;
             for xtry in 0..mv_est.mv_range * 2 + 1 {
-                let dx = if (xtry & 1) == 0 { xtry >> 1 } else { -((xtry + 1) >> 1) };
+                let dx = if (xtry & 1) == 0 {
+                    xtry >> 1
+                } else {
+                    -((xtry + 1) >> 1)
+                };
                 cur_mv.x = dx * 4;
 
                 let dist = mv_est.sad_mb(cur_blk, mb_x, mb_y, cur_mv, best_dist);
@@ -155,16 +203,30 @@ impl MVSearch for FullMVSearch {
         }
         (best_mv, best_dist)
     }
-    fn search_blk(&mut self, mv_est: &mut MVEstimator, cur_blk: &[u8; 64], xpos: usize, ypos: usize) -> (MV, u32) {
+    fn search_blk(
+        &mut self,
+        mv_est: &mut MVEstimator,
+        cur_blk: &[u8; 64],
+        xpos: usize,
+        ypos: usize,
+    ) -> (MV, u32) {
         let mut best_dist = MAX_DIST;
         let mut best_mv = ZERO_MV;
 
         let mut cur_mv = ZERO_MV;
         for ytry in 0..mv_est.mv_range * 2 + 1 {
-            let dy = if (ytry & 1) == 0 { ytry >> 1 } else { -((ytry + 1) >> 1) };
+            let dy = if (ytry & 1) == 0 {
+                ytry >> 1
+            } else {
+                -((ytry + 1) >> 1)
+            };
             cur_mv.y = dy * 4;
             for xtry in 0..mv_est.mv_range * 2 + 1 {
-                let dx = if (xtry & 1) == 0 { xtry >> 1 } else { -((xtry + 1) >> 1) };
+                let dx = if (xtry & 1) == 0 {
+                    xtry >> 1
+                } else {
+                    -((xtry + 1) >> 1)
+                };
                 cur_mv.x = dx * 4;
 
                 let dist = mv_est.sad_blk(cur_blk, xpos, ypos, cur_mv, best_dist);
@@ -181,35 +243,35 @@ impl MVSearch for FullMVSearch {
 
 const DIA_PATTERN: [MV; 9] = [
     ZERO_MV,
-    MV {x: -2, y:  0},
-    MV {x: -1, y:  1},
-    MV {x:  0, y:  2},
-    MV {x:  1, y:  1},
-    MV {x:  2, y:  0},
-    MV {x:  1, y: -1},
-    MV {x:  0, y: -2},
-    MV {x: -1, y: -1}
+    MV { x: -2, y: 0 },
+    MV { x: -1, y: 1 },
+    MV { x: 0, y: 2 },
+    MV { x: 1, y: 1 },
+    MV { x: 2, y: 0 },
+    MV { x: 1, y: -1 },
+    MV { x: 0, y: -2 },
+    MV { x: -1, y: -1 },
 ];
 
 const HEX_PATTERN: [MV; 7] = [
     ZERO_MV,
-    MV {x: -2, y:  0},
-    MV {x: -1, y:  2},
-    MV {x:  1, y:  2},
-    MV {x:  2, y:  0},
-    MV {x:  1, y: -2},
-    MV {x: -1, y: -2}
+    MV { x: -2, y: 0 },
+    MV { x: -1, y: 2 },
+    MV { x: 1, y: 2 },
+    MV { x: 2, y: 0 },
+    MV { x: 1, y: -2 },
+    MV { x: -1, y: -2 },
 ];
 
 const REFINEMENT: [MV; 4] = [
-    MV {x: -1, y:  0},
-    MV {x:  0, y:  1},
-    MV {x:  1, y:  0},
-    MV {x:  0, y: -1}
+    MV { x: -1, y: 0 },
+    MV { x: 0, y: 1 },
+    MV { x: 1, y: 0 },
+    MV { x: 0, y: -1 },
 ];
 
 macro_rules! search_template {
-    ($self: expr, $mv_est: expr, $cur_blk: expr, $mb_x: expr, $mb_y: expr, $sad_func: ident) => ({
+    ($self: expr, $mv_est: expr, $cur_blk: expr, $mb_x: expr, $mb_y: expr, $sad_func: ident) => {{
         let mut best_dist = MAX_DIST;
         let mut best_mv;
 
@@ -221,7 +283,13 @@ macro_rules! search_template {
             let mut cur_best_dist = best_dist;
             for (dist, &point) in $self.dist.iter_mut().zip($self.point.iter()) {
                 if *dist == MAX_DIST {
-                    *dist = $mv_est.$sad_func($cur_blk, $mb_x, $mb_y, point.from_pixels(), cur_best_dist);
+                    *dist = $mv_est.$sad_func(
+                        $cur_blk,
+                        $mb_x,
+                        $mb_y,
+                        point.from_pixels(),
+                        cur_best_dist,
+                    );
                     cur_best_dist = cur_best_dist.min(*dist);
                     if *dist <= DIST_THRESH {
                         break;
@@ -239,14 +307,19 @@ macro_rules! search_template {
                     }
                 }
             }
-            if min_dist <= DIST_THRESH || min_idx == 0 || best_dist == min_dist || $self.point[min_idx].x.abs() >= $mv_est.mv_range || $self.point[min_idx].y.abs() >= $mv_est.mv_range {
+            if min_dist <= DIST_THRESH
+                || min_idx == 0
+                || best_dist == min_dist
+                || $self.point[min_idx].x.abs() >= $mv_est.mv_range
+                || $self.point[min_idx].y.abs() >= $mv_est.mv_range
+            {
                 break;
             }
             best_dist = min_dist;
             $self.update($self.steps[min_idx]);
         }
         best_dist = min_dist;
-        best_mv   = $self.point[min_idx];
+        best_mv = $self.point[min_idx];
         if best_dist <= DIST_THRESH {
             return (best_mv.from_pixels(), best_dist);
         }
@@ -287,14 +360,19 @@ macro_rules! search_template {
                     }
                 }
             }
-            if min_dist <= DIST_THRESH || min_idx == 0 || best_dist == min_dist || $self.point[min_idx].x.abs() >= $mv_est.mv_range * 4 || $self.point[min_idx].y.abs() >= $mv_est.mv_range * 4 {
+            if min_dist <= DIST_THRESH
+                || min_idx == 0
+                || best_dist == min_dist
+                || $self.point[min_idx].x.abs() >= $mv_est.mv_range * 4
+                || $self.point[min_idx].y.abs() >= $mv_est.mv_range * 4
+            {
                 break;
             }
             best_dist = min_dist;
             $self.update($self.steps[min_idx]);
         }
         best_dist = min_dist;
-        best_mv   = $self.point[min_idx];
+        best_mv = $self.point[min_idx];
         if best_dist <= DIST_THRESH {
             return (best_mv, best_dist);
         }
@@ -307,28 +385,28 @@ macro_rules! search_template {
             }
         }
         (best_mv, best_dist)
-    })
+    }};
 }
 
 macro_rules! pattern_search {
     ($struct_name: ident, $patterns: expr) => {
         pub struct $struct_name {
-            point:  [MV; $patterns.len()],
-            dist:   [u32; $patterns.len()],
-            steps:  &'static [MV; $patterns.len()],
+            point: [MV; $patterns.len()],
+            dist: [u32; $patterns.len()],
+            steps: &'static [MV; $patterns.len()],
         }
 
         impl $struct_name {
             pub fn new() -> Self {
                 Self {
-                    point:  $patterns,
-                    dist:   [MAX_DIST; $patterns.len()],
-                    steps:  &$patterns,
+                    point: $patterns,
+                    dist: [MAX_DIST; $patterns.len()],
+                    steps: &$patterns,
                 }
             }
             fn reset(&mut self) {
                 self.point = $patterns;
-                self.dist  = [MAX_DIST; $patterns.len()];
+                self.dist = [MAX_DIST; $patterns.len()];
             }
             fn set_new_point(&mut self, start: MV, dist: u32) {
                 for (dst, &src) in self.point.iter_mut().zip(self.steps.iter()) {
@@ -354,64 +432,89 @@ macro_rules! pattern_search {
                     }
                 }
                 self.point = new_point;
-                self.dist  = new_dist;
+                self.dist = new_dist;
             }
         }
 
         impl MVSearch for $struct_name {
-            fn search_mb(&mut self, mv_est: &mut MVEstimator, cur_blk: &[[u8; 64]; 6], mb_x: usize, mb_y: usize) -> (MV, u32) {
+            fn search_mb(
+                &mut self,
+                mv_est: &mut MVEstimator,
+                cur_blk: &[[u8; 64]; 6],
+                mb_x: usize,
+                mb_y: usize,
+            ) -> (MV, u32) {
                 search_template!(self, mv_est, cur_blk, mb_x, mb_y, sad_mb)
             }
-            fn search_blk(&mut self, mv_est: &mut MVEstimator, cur_blk: &[u8; 64], xpos: usize, ypos: usize) -> (MV, u32) {
+            fn search_blk(
+                &mut self,
+                mv_est: &mut MVEstimator,
+                cur_blk: &[u8; 64],
+                xpos: usize,
+                ypos: usize,
+            ) -> (MV, u32) {
                 search_template!(self, mv_est, cur_blk, xpos, ypos, sad_blk)
             }
         }
-    }
+    };
 }
 
 pattern_search!(DiaSearch, DIA_PATTERN);
 pattern_search!(HexSearch, HEX_PATTERN);
 
 pub struct MVEstimator {
-    pub ref_blk:        [[u8; 64]; 6],
-    mc_buf:         NAVideoBufferRef<u8>,
-    ref_frame:      NAVideoBufferRef<u8>,
-    adv_profile:    bool,
-    bicubic:        bool,
-    autosel_pm:     bool,
-    mv_thresh:      u8,
-    var_thresh:     u16,
-    filter_alpha:   usize,
-    loop_tab:       [i16; 256],
-    mv_range:       i16,
-pub count: usize,
-pub count2: usize,
+    pub ref_blk: [[u8; 64]; 6],
+    mc_buf: NAVideoBufferRef<u8>,
+    ref_frame: NAVideoBufferRef<u8>,
+    adv_profile: bool,
+    bicubic: bool,
+    autosel_pm: bool,
+    mv_thresh: u8,
+    var_thresh: u16,
+    filter_alpha: usize,
+    loop_tab: [i16; 256],
+    mv_range: i16,
+    pub count: usize,
+    pub count2: usize,
 }
 
 impl MVEstimator {
-    pub fn new(ref_frame: NAVideoBufferRef<u8>, mc_buf: NAVideoBufferRef<u8>, loop_tab: [i16;256], mv_range: i16) -> Self {
+    pub fn new(
+        ref_frame: NAVideoBufferRef<u8>,
+        mc_buf: NAVideoBufferRef<u8>,
+        loop_tab: [i16; 256],
+        mv_range: i16,
+    ) -> Self {
         Self {
-            ref_blk:        [[0; 64]; 6],
-            ref_frame, mc_buf,
-            adv_profile:    false,
-            bicubic:        false,
-            autosel_pm:     false,
-            mv_thresh:      0,
-            var_thresh:     0,
-            filter_alpha:   0,
+            ref_blk: [[0; 64]; 6],
+            ref_frame,
+            mc_buf,
+            adv_profile: false,
+            bicubic: false,
+            autosel_pm: false,
+            mv_thresh: 0,
+            var_thresh: 0,
+            filter_alpha: 0,
             loop_tab,
             mv_range,
-count: 0,
-count2: 0,
+            count: 0,
+            count2: 0,
         }
     }
     pub fn mc_block(&mut self, dst_idx: usize, plane: usize, x: usize, y: usize, mv: MV) {
         let is_luma = (plane != 1) && (plane != 2);
         let (sx, sy, mx, my, msx, msy) = if is_luma {
-                (mv.x >> 2, mv.y >> 2, (mv.x & 3) << 1, (mv.y & 3) << 1, mv.x / 4, mv.y / 4)
-            } else {
-                (mv.x >> 3, mv.y >> 3, mv.x & 7, mv.y & 7, mv.x / 8, mv.y / 8)
-            };
+            (
+                mv.x >> 2,
+                mv.y >> 2,
+                (mv.x & 3) << 1,
+                (mv.y & 3) << 1,
+                mv.x / 4,
+                mv.y / 4,
+            )
+        } else {
+            (mv.x >> 3, mv.y >> 3, mv.x & 7, mv.y & 7, mv.x / 8, mv.y / 8)
+        };
         let tmp_blk = self.mc_buf.get_data_mut().unwrap();
         get_block(tmp_blk, 16, self.ref_frame.clone(), plane, x, y, sx, sy);
         if (msx & 7) != 0 {
@@ -433,8 +536,12 @@ count2: 0,
                 let mv_limit = 1 << (self.mv_thresh + 1);
                 if (mv.x.abs() <= mv_limit) && (mv.y.abs() <= mv_limit) {
                     let mut var_off = 16 * 2 + 2;
-                    if mv.x < 0 { var_off += 1; }
-                    if mv.y < 0 { var_off += 16; }
+                    if mv.x < 0 {
+                        var_off += 1;
+                    }
+                    if mv.y < 0 {
+                        var_off += 16;
+                    }
                     let var = calc_variance(&tmp_blk[var_off..], 16);
                     if var >= self.var_thresh {
                         bicubic = true;
@@ -456,12 +563,25 @@ count2: 0,
             mc_bilinear16(dst, 8, tmp_blk, mx as u16, my as u16);
         }
     }
-    fn sad_mb(&mut self, cur_blk: &[[u8; 64]; 6], mb_x: usize, mb_y: usize, cur_mv: MV, best_dist: u32) -> u32 {
+    fn sad_mb(
+        &mut self,
+        cur_blk: &[[u8; 64]; 6],
+        mb_x: usize,
+        mb_y: usize,
+        cur_mv: MV,
+        best_dist: u32,
+    ) -> u32 {
         let mut dist = 0;
         for i in 0..4 {
-            self.mc_block(i, 0, mb_x * 16 + (i & 1) * 8, mb_y * 16 + (i >> 1) * 8, cur_mv);
+            self.mc_block(
+                i,
+                0,
+                mb_x * 16 + (i & 1) * 8,
+                mb_y * 16 + (i >> 1) * 8,
+                cur_mv,
+            );
             dist += sad(&cur_blk[i], &self.ref_blk[i]);
-self.count2 += 1;
+            self.count2 += 1;
             if dist > best_dist {
                 break;
             }
@@ -470,13 +590,13 @@ self.count2 += 1;
             for plane in 1..3 {
                 self.mc_block(plane + 3, plane, mb_x * 8, mb_y * 8, cur_mv);
                 dist += sad(&cur_blk[plane + 3], &self.ref_blk[plane + 3]);
-self.count2 += 1;
+                self.count2 += 1;
                 if dist > best_dist {
                     break;
                 }
             }
         }
-self.count += 1;
+        self.count += 1;
         dist
     }
     fn sad_blk(&mut self, cur_blk: &[u8; 64], xpos: usize, ypos: usize, cur_mv: MV, _: u32) -> u32 {

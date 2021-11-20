@@ -1,45 +1,45 @@
 use super::rdo::*;
 
 pub struct RateControl {
-    pub lambda:     f32,
-    tgt_br:         u32,
-    budget:         isize,
-    cur_time:       u32,
-    ts_num:         u32,
-    ts_den:         u32,
-    mb_w:           usize,
-    mb_h:           usize,
-    projected:      usize,
+    pub lambda: f32,
+    tgt_br: u32,
+    budget: isize,
+    cur_time: u32,
+    ts_num: u32,
+    ts_den: u32,
+    mb_w: usize,
+    mb_h: usize,
+    projected: usize,
 }
 
 // todo intra/inter decision, better allocation for intra frames
 impl RateControl {
     pub fn new() -> Self {
         Self {
-            lambda:     1.0,
-            tgt_br:     0,
-            budget:     0,
-            cur_time:   0,
-            ts_num:     0,
-            ts_den:     0,
-            mb_w:       0,
-            mb_h:       0,
-            projected:  0,
+            lambda: 1.0,
+            tgt_br: 0,
+            budget: 0,
+            cur_time: 0,
+            ts_num: 0,
+            ts_den: 0,
+            mb_w: 0,
+            mb_h: 0,
+            projected: 0,
         }
     }
     pub fn init(&mut self, mb_w: usize, mb_h: usize, bitrate: u32, ts_num: u32, ts_den: u32) {
-        self.mb_w   = mb_w;
-        self.mb_h   = mb_h;
+        self.mb_w = mb_w;
+        self.mb_h = mb_h;
         self.lambda = 1.0;
         self.cur_time = 0;
         if bitrate == 0 || ts_num == 0 || ts_den == 0 {
             self.tgt_br = 0;
             self.budget = 0;
         } else {
-            self.tgt_br     = bitrate;
-            self.budget     = bitrate as isize;
-            self.ts_num     = ts_num;
-            self.ts_den     = ts_den;
+            self.tgt_br = bitrate;
+            self.budget = bitrate as isize;
+            self.ts_num = ts_num;
+            self.ts_den = ts_den;
         }
     }
     pub fn guess_quant(&mut self, intra: bool, huffman: bool) -> usize {
