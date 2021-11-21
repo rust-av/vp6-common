@@ -1,6 +1,3 @@
-#![allow(clippy::wrong_self_convention)]
-#![allow(clippy::field_reassign_with_default)]
-
 use super::vp6data::*;
 use super::vpcommon::*;
 use nihav_core::codecs::*;
@@ -1033,6 +1030,7 @@ mod test {
         let mut enc_reg = RegisteredEncoders::new();
         duck_register_all_encoders(&mut enc_reg);
 
+        // sample: https://samples.mplayerhq.hu/V-codecs/VP4/ot171_vp40.avi
         let dec_config = DecoderTestParams {
             demuxer: "avi",
             in_name: "assets/ot171_vp40.avi",

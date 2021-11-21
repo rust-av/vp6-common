@@ -472,7 +472,7 @@ pub struct MVEstimator {
     mv_thresh: u8,
     var_thresh: u16,
     filter_alpha: usize,
-    loop_tab: [i16; 256],
+    loop_thr: i16,
     mv_range: i16,
     pub count: usize,
     pub count2: usize,
@@ -482,7 +482,7 @@ impl MVEstimator {
     pub fn new(
         ref_frame: NAVideoBufferRef<u8>,
         mc_buf: NAVideoBufferRef<u8>,
-        loop_tab: [i16; 256],
+        loop_thr: i16,
         mv_range: i16,
     ) -> Self {
         Self {
@@ -495,7 +495,7 @@ impl MVEstimator {
             mv_thresh: 0,
             var_thresh: 0,
             filter_alpha: 0,
-            loop_tab,
+            loop_thr,
             mv_range,
             count: 0,
             count2: 0,
@@ -520,12 +520,12 @@ impl MVEstimator {
         if (msx & 7) != 0 {
             let foff = (8 - (sx & 7)) as usize;
             let off = 2 + foff;
-            vp31_loop_filter_step1_stride16(tmp_blk, off, 12, &self.loop_tab);
+            vp31_loop_filter(tmp_blk, off, 1, 16, 12, self.loop_thr);
         }
         if (msy & 7) != 0 {
             let foff = (8 - (sy & 7)) as usize;
             let off = (2 + foff) * 16;
-            vp31_loop_filter_step16_stride1(tmp_blk, off, 12, &self.loop_tab);
+            vp31_loop_filter(tmp_blk, off, 16, 1, 12, self.loop_thr);
         }
         let copy_mode = (mx == 0) && (my == 0);
         let mut bicubic = !copy_mode && is_luma && self.bicubic;

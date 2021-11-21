@@ -364,8 +364,6 @@ impl FrameEncoder {
         golden: bool,
     ) {
         let loop_thr = i16::from(VP56_FILTER_LIMITS[self.quant as usize]);
-        let mut loop_tab: [i16; 256] = [0; 256];
-        calc_loop_tab(loop_thr, &mut loop_tab);
 
         let inter_mbs = if !golden {
             &mut self.inter_mbs
@@ -381,7 +379,7 @@ impl FrameEncoder {
 
         let mut cur_blk = [[0u8; 64]; 6];
 
-        let mut mv_est = MVEstimator::new(ref_frame, mc_buf, loop_tab, self.me_range);
+        let mut mv_est = MVEstimator::new(ref_frame, mc_buf, loop_thr, self.me_range);
 
         let mut mv_search: Box<dyn MVSearch> = match self.me_mode {
             MVSearchMode::Full => Box::new(FullMVSearch::new()),
@@ -389,7 +387,7 @@ impl FrameEncoder {
             MVSearchMode::Hexagon => Box::new(HexSearch::new()),
         };
         let mut mb_pos = 0;
-        for (mb_y, row) in inter_mbs.chunks_exact_mut(self.mb_w).enumerate() {
+        for (mb_y, row) in inter_mbs.chunks_mut(self.mb_w).enumerate() {
             for (mb_x, mb) in row.iter_mut().enumerate() {
                 self.src_mbs[mb_pos].fill(&mut cur_blk);
 
@@ -432,8 +430,6 @@ impl FrameEncoder {
         mb_y: usize,
     ) -> bool {
         let loop_thr = i16::from(VP56_FILTER_LIMITS[self.quant as usize]);
-        let mut loop_tab: [i16; 256] = [0; 256];
-        calc_loop_tab(loop_thr, &mut loop_tab);
 
         if self.fourmv_mbs.is_empty() {
             for _ in 0..self.mb_w * self.mb_h {
@@ -451,7 +447,7 @@ impl FrameEncoder {
         let mut cur_blk = [[0u8; 64]; 6];
         self.src_mbs[mb_pos].fill(&mut cur_blk);
 
-        let mut mv_est = MVEstimator::new(ref_frame, mc_buf, loop_tab, self.me_range);
+        let mut mv_est = MVEstimator::new(ref_frame, mc_buf, loop_thr, self.me_range);
 
         let mut mv_search: Box<dyn MVSearch> = match self.me_mode {
             MVSearchMode::Full => Box::new(FullMVSearch::new()),

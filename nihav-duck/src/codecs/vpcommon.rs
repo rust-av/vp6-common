@@ -433,7 +433,7 @@ pub fn vp_add_block(
     for y in 0..8 {
         let frm_data = &mut frm.data[off..(off + 8)];
         for x in 0..8 {
-            frm_data[x] = (coeffs[x + y * 8] + i16::from(frm_data[x])) as u8;
+            frm_data[x] = (coeffs[x + y * 8] + i16::from(frm_data[x])).min(255).max(0) as u8;
         }
         off += stride;
     }
@@ -476,223 +476,34 @@ pub fn vp_add_block_dc(
     }
 }
 
-/*pub fn vp31_loop_filter(
-    data: &mut [u8],
-    off: usize,
-    step: usize,
-    stride: usize,
-    len: usize,
-    loop_str: i16,
-) {
-    let mut loop_tab: [i16; 256] = [0; 256];
-    calc_loop_tab(loop_str, &mut loop_tab);
-    vp31_loop_filter_tab(data, off, step, stride, len, &loop_tab);
-}*/
-
-pub fn calc_loop_tab(loop_str: i16, tab: &mut [i16; 256]) {
-    for diff in -128..128_i16 {
-        tab[(diff + 128) as usize] = if diff.abs() >= 2 * loop_str {
-            0
-        } else if diff.abs() >= loop_str {
-            if diff < 0 {
-                -diff - 2 * loop_str
-            } else {
-                -diff + 2 * loop_str
-            }
-        } else {
-            diff
-        } as i16;
-    }
-}
-
-#[inline(always)]
-fn vp31_loop_filter_tab(
+pub fn vp31_loop_filter(
     data: &mut [u8],
     mut off: usize,
     step: usize,
     stride: usize,
     len: usize,
-    loop_tab: &[i16; 256],
+    loop_str: i16,
 ) {
     for _ in 0..len {
-        let a = i16::from(data[(off - step * 2) as usize]);
-        let b = i16::from(data[(off - step) as usize]);
-        let c = i16::from(data[off as usize]);
-        let d = i16::from(data[(off + step) as usize]);
-        let diff = loop_tab[(128 + (((a - d) + 3 * (c - b) + 4) >> 3)) as u8 as usize] as i16;
-        data[(off - step) as usize] = (b + diff).max(0) as u8;
-        data[off as usize] = (c - diff).max(0) as u8;
+        let a = i16::from(data[off - step * 2]);
+        let b = i16::from(data[off - step]);
+        let c = i16::from(data[off]);
+        let d = i16::from(data[off + step]);
+        let mut diff = ((a - d) + 3 * (c - b) + 4) >> 3;
+        if diff.abs() >= 2 * loop_str {
+            diff = 0;
+        } else if diff.abs() >= loop_str {
+            if diff < 0 {
+                diff = -diff - 2 * loop_str;
+            } else {
+                diff = -diff + 2 * loop_str;
+            }
+        }
+        if diff != 0 {
+            data[off - step] = (b + diff).max(0).min(255) as u8;
+            data[off] = (c - diff).max(0).min(255) as u8;
+        }
 
         off += stride;
     }
 }
-
-pub fn vp31_loop_filter_step1_stride16(
-    data: &mut [u8],
-    off: usize,
-    len: usize,
-    loop_tab: &[i16; 256],
-) {
-    vp31_loop_filter_tab(data, off, 1, 16, len, loop_tab);
-}
-
-pub fn vp31_loop_filter_step16_stride1(
-    data: &mut [u8],
-    off: usize,
-    len: usize,
-    loop_tab: &[i16; 256],
-) {
-    vp31_loop_filter_tab(data, off, 16, 1, len, loop_tab);
-}
-
-/*pub fn vp_copy_block(
-    dst: &mut NASimpleVideoFrame<u8>,
-    src: NAVideoBufferRef<u8>,
-    comp: usize,
-    dx: usize,
-    dy: usize,
-    mv_x: i16,
-    mv_y: i16,
-    preborder: usize,
-    postborder: usize,
-    loop_thr: i16,
-    mode: usize,
-    interp: &[BlkInterpFunc],
-    mc_buf: NAVideoBufferRef<u8>,
-) {
-    let mut loop_tab: [i16; 256] = [0; 256];
-    calc_loop_tab(loop_thr, &mut loop_tab);
-    vp_copy_block_tab(
-        dst, src, comp, dx, dy, mv_x, mv_y, preborder, postborder, &loop_tab, mode, interp, mc_buf,
-    );
-}*/
-
-/*pub fn vp_copy_block_tab(
-    dst: &mut NASimpleVideoFrame<u8>,
-    src: NAVideoBufferRef<u8>,
-    comp: usize,
-    dx: usize,
-    dy: usize,
-    mv_x: i16,
-    mv_y: i16,
-    preborder: usize,
-    postborder: usize,
-    loop_tab: &[i16; 256],
-    mode: usize,
-    interp: &[BlkInterpFunc],
-    mut mc_buf: NAVideoBufferRef<u8>,
-) {
-    let sx = (dx as isize) + (mv_x as isize);
-    let sy = (dy as isize) + (mv_y as isize);
-    if ((sx | sy) & 7) == 0 {
-        copy_block(
-            dst, src, comp, dx, dy, mv_x, mv_y, 8, 8, preborder, postborder, mode, interp,
-        );
-        return;
-    }
-    let pre = preborder.max(2);
-    let post = postborder.max(1);
-    let bsize = 8 + pre + post;
-    let src_x = sx - (pre as isize);
-    let src_y = sy - (pre as isize);
-    {
-        let tmp_buf = NASimpleVideoFrame::from_video_buf(&mut mc_buf).unwrap();
-        edge_emu(
-            src.as_ref(),
-            src_x,
-            src_y,
-            bsize,
-            bsize,
-            &mut tmp_buf.data[tmp_buf.offset[comp]..],
-            tmp_buf.stride[comp],
-            comp,
-            0,
-        );
-        //        copy_block(&mut tmp_buf, src, comp, 0, 0, src_x as i16, src_y as i16,
-        //                   bsize, bsize, 0, 0, 0, interp);
-        if (sx & 7) != 0 {
-            let foff = (8 - (sx & 7)) as usize;
-            let off = pre + foff + tmp_buf.offset[comp];
-            vp31_loop_filter_tab(tmp_buf.data, off, 1, tmp_buf.stride[comp], bsize, loop_tab);
-        }
-        if (sy & 7) != 0 {
-            let foff = (8 - (sy & 7)) as usize;
-            let off = (pre + foff) * tmp_buf.stride[comp] + tmp_buf.offset[comp];
-            vp31_loop_filter_tab(tmp_buf.data, off, tmp_buf.stride[comp], 1, bsize, loop_tab);
-        }
-    }
-    let dxoff = (pre as i16) - (dx as i16);
-    let dyoff = (pre as i16) - (dy as i16);
-    copy_block(
-        dst, mc_buf, comp, dx, dy, dxoff, dyoff, 8, 8, preborder, postborder, mode, interp,
-    );
-}*/
-
-/*fn vp3_interp00(dst: &mut [u8], dstride: usize, src: &[u8], sstride: usize, bw: usize, bh: usize) {
-    let mut didx = 0;
-    let mut sidx = 0;
-    for _ in 0..bh {
-        dst[didx..][..bw].copy_from_slice(&src[sidx..][..bw]);
-        didx += dstride;
-        sidx += sstride;
-    }
-}*/
-
-/*fn vp3_interp01(dst: &mut [u8], dstride: usize, src: &[u8], sstride: usize, bw: usize, bh: usize) {
-    let mut didx = 0;
-    let mut sidx = 0;
-    for _ in 0..bh {
-        for x in 0..bw {
-            dst[didx + x] = ((u16::from(src[sidx + x]) + u16::from(src[sidx + x + 1])) >> 1) as u8;
-        }
-        didx += dstride;
-        sidx += sstride;
-    }
-}*/
-
-/*fn vp3_interp10(dst: &mut [u8], dstride: usize, src: &[u8], sstride: usize, bw: usize, bh: usize) {
-    let mut didx = 0;
-    let mut sidx = 0;
-    for _ in 0..bh {
-        for x in 0..bw {
-            dst[didx + x] =
-                ((u16::from(src[sidx + x]) + u16::from(src[sidx + x + sstride])) >> 1) as u8;
-        }
-        didx += dstride;
-        sidx += sstride;
-    }
-}*/
-
-/*fn vp3_interp1x(dst: &mut [u8], dstride: usize, src: &[u8], sstride: usize, bw: usize, bh: usize) {
-    let mut didx = 0;
-    let mut sidx = 0;
-    for _ in 0..bh {
-        for x in 0..bw {
-            dst[didx + x] =
-                ((u16::from(src[sidx + x]) + u16::from(src[sidx + x + sstride + 1])) >> 1) as u8;
-        }
-        didx += dstride;
-        sidx += sstride;
-    }
-}*/
-
-/*fn vp3_interp1y(dst: &mut [u8], dstride: usize, src: &[u8], sstride: usize, bw: usize, bh: usize) {
-    let mut didx = 0;
-    let mut sidx = 0;
-    for _ in 0..bh {
-        for x in 0..bw {
-            dst[didx + x] =
-                ((u16::from(src[sidx + x + 1]) + u16::from(src[sidx + x + sstride])) >> 1) as u8;
-        }
-        didx += dstride;
-        sidx += sstride;
-    }
-}*/
-
-/*pub const VP3_INTERP_FUNCS: &[blockdsp::BlkInterpFunc] = &[
-    vp3_interp00,
-    vp3_interp01,
-    vp3_interp10,
-    vp3_interp1x,
-    vp3_interp1y,
-];*/

@@ -368,7 +368,7 @@ impl VP56Parser for VP6BR {
         x: usize,
         y: usize,
         mv: MV,
-        loop_tab: &[i16; 256],
+        loop_str: i16,
     ) {
         let is_luma = (plane != 1) && (plane != 2);
         let (sx, sy, mx, my, msx, msy) = if is_luma {
@@ -388,12 +388,12 @@ impl VP56Parser for VP6BR {
         if (msx & 7) != 0 {
             let foff = (8 - (sx & 7)) as usize;
             let off = 2 + foff;
-            vp31_loop_filter_step1_stride16(tmp_blk, off, 12, loop_tab);
+            vp31_loop_filter(tmp_blk, off, 1, 16, 12, loop_str);
         }
         if (msy & 7) != 0 {
             let foff = (8 - (sy & 7)) as usize;
             let off = (2 + foff) * 16;
-            vp31_loop_filter_step16_stride1(tmp_blk, off, 12, loop_tab);
+            vp31_loop_filter(tmp_blk, off, 16, 1, 12, loop_str);
         }
         let copy_mode = (mx == 0) && (my == 0);
         let mut bicubic = !copy_mode && is_luma && self.bicubic;
@@ -422,7 +422,7 @@ impl VP56Parser for VP6BR {
         if copy_mode {
             let src = &tmp_blk[2 * 16 + 2..];
             for (dline, sline) in dbuf
-                .chunks_exact_mut(dst.stride[plane])
+                .chunks_mut(dst.stride[plane])
                 .zip(src.chunks(16))
                 .take(8)
             {

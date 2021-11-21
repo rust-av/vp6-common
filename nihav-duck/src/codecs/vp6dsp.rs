@@ -86,16 +86,14 @@ pub fn mc_bilinear<const SOFF: usize, const SSTRIDE: usize>(
     assert!(dstride >= 8);
 
     if my == 0 {
-        assert!(src.len() >= soff + SSTRIDE * 8);
-        for dline in dst.chunks_exact_mut(dstride).take(8) {
+        for dline in dst.chunks_mut(dstride).take(8) {
             for i in 0..8 {
                 dline[i] = mc_filter!(bilinear; src[soff + i], src[soff + i + 1], mx);
             }
             soff += SSTRIDE;
         }
     } else if mx == 0 {
-        assert!(src.len() >= soff + SSTRIDE * 8);
-        for dline in dst.chunks_exact_mut(dstride).take(8) {
+        for dline in dst.chunks_mut(dstride).take(8) {
             for i in 0..8 {
                 dline[i] = mc_filter!(bilinear; src[soff + i], src[soff + i + SSTRIDE], my);
             }
@@ -109,7 +107,7 @@ pub fn mc_bilinear<const SOFF: usize, const SSTRIDE: usize>(
         soff += SSTRIDE;
 
         assert!(src.len() >= soff + SSTRIDE * 8);
-        for dline in dst.chunks_exact_mut(dstride).take(8) {
+        for dline in dst.chunks_mut(dstride).take(8) {
             for i in 0..8 {
                 let cur = mc_filter!(bilinear; src[soff + i], src[soff + i + 1], mx);
                 dline[i] = mc_filter!(bilinear; tmp[i], cur, my);
@@ -135,7 +133,7 @@ pub fn mc_bicubic(
     coeffs_h: &[i16; 4],
 ) {
     if coeffs_h[1] == 128 {
-        for dline in dst.chunks_exact_mut(dstride).take(8) {
+        for dline in dst.chunks_mut(dstride).take(8) {
             for i in 0..8 {
                 dline[i] = mc_filter!(bicubic; src, soff + i, 1, coeffs_w);
             }
@@ -143,7 +141,7 @@ pub fn mc_bicubic(
         }
     } else if coeffs_w[1] == 128 {
         // horizontal-only interpolation
-        for dline in dst.chunks_exact_mut(dstride).take(8) {
+        for dline in dst.chunks_mut(dstride).take(8) {
             for i in 0..8 {
                 dline[i] = mc_filter!(bicubic; src, soff + i, sstride, coeffs_h);
             }
@@ -152,14 +150,14 @@ pub fn mc_bicubic(
     } else {
         let mut buf = [0u8; 16 * 11];
         soff -= sstride;
-        for dline in buf.chunks_exact_mut(16) {
+        for dline in buf.chunks_mut(16) {
             for i in 0..8 {
                 dline[i] = mc_filter!(bicubic; src, soff + i, 1, coeffs_w);
             }
             soff += sstride;
         }
         let mut soff = 16;
-        for dline in dst.chunks_exact_mut(dstride).take(8) {
+        for dline in dst.chunks_mut(dstride).take(8) {
             for i in 0..8 {
                 dline[i] = mc_filter!(bicubic; buf, soff + i, 16, coeffs_h);
             }
