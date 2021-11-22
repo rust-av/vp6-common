@@ -1036,7 +1036,7 @@ mod test {
         // sample: https://samples.mplayerhq.hu/V-codecs/VP4/ot171_vp40.avi
         let dec_config = DecoderTestParams {
             demuxer: "avi",
-            in_name: "assets/ot171_vp40.avi",
+            in_name: "assets/vp6_crash.avi",
             stream_type: StreamType::Video,
             limit: Some(1),
             dmx_reg,
@@ -1076,7 +1076,7 @@ mod test {
         encode_test(
             "vp6-bool.avi",
             enc_options,
-            &[0xb57f49e5, 0x6b48accd, 0xc28fadb3, 0xc89a30d2],
+            &[0x4f59a9a8, 0x535e3bda, 0x2bc6bb7d, 0x8bd35251],
         );
     }
     #[test]
@@ -1085,7 +1085,7 @@ mod test {
         encode_test(
             "vp6-rc.avi",
             enc_options,
-            &[0x790baca9, 0x663eafcf, 0x36d1bed8, 0xddf882de],
+            &[0x7e55b29c, 0x754f65c2, 0x7f26c010, 0x6f577b35],
         );
     }
     #[test]
@@ -1103,7 +1103,7 @@ mod test {
         encode_test(
             "vp6-huff.avi",
             enc_options,
-            &[0x6e9bb23d, 0xde296d92, 0x4c225bae, 0x3651e31f],
+            &[0x8a247df3, 0xe47fe0c4, 0x983a85d7, 0x73f82b05],
         );
     }
 }
