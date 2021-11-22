@@ -1222,7 +1222,7 @@ impl VP56Decoder {
                 mv,
                 &self.loop_tab,
             );
-            br.mc_block(frm, self.mc_buf.clone(), src, 2, x, y, mv,  &self.loop_tab);
+            br.mc_block(frm, self.mc_buf.clone(), src, 2, x, y, mv, &self.loop_tab);
         }
     }
     fn do_fourmv(

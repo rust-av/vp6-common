@@ -492,7 +492,8 @@ pub fn vp31_build_lf_tab(tab: &mut [i8; 256], loop_str: i16) {
     }
 }
 
-pub fn vp31_loop_filter(
+#[inline(always)]
+fn vp31_loop_filter(
     data: &mut [u8],
     mut off: usize,
     step: usize,
@@ -514,4 +515,22 @@ pub fn vp31_loop_filter(
 
         off += stride;
     }
+}
+
+pub fn vp31_loop_filter_step1_stride16(
+    data: &mut [u8],
+    off: usize,
+    len: usize,
+    loop_tab: &[i8; 256],
+) {
+    vp31_loop_filter(data, off, 1, 16, len, loop_tab);
+}
+
+pub fn vp31_loop_filter_step16_stride1(
+    data: &mut [u8],
+    off: usize,
+    len: usize,
+    loop_tab: &[i8; 256],
+) {
+    vp31_loop_filter(data, off, 16, 1, len, loop_tab);
 }
