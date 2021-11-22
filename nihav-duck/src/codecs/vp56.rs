@@ -283,7 +283,7 @@ pub trait VP56Parser {
         x: usize,
         y: usize,
         mv: MV,
-        loop_thr: i16,
+        loop_tab: &[i8; 256],
     );
 }
 
@@ -398,6 +398,7 @@ pub struct VP56Decoder {
     last_mbt: VPMBType,
 
     loop_thr: i16,
+    loop_tab: [i8; 256],
     ilace_prob: u8,
     ilace_mb: bool,
 
@@ -490,7 +491,8 @@ impl VP56Decoder {
             coeffs: [[0; 64]; 6],
             last_mbt: VPMBType::InterNoMV,
 
-            loop_thr: 0,
+            loop_thr: 256,
+            loop_tab: [0; 256],
             ilace_prob: 0,
             ilace_mb: false,
 
@@ -708,8 +710,11 @@ impl VP56Decoder {
         self.fstate = FrameState::new();
         self.fstate.dc_quant = VP56_DC_QUANTS[hdr.quant as usize] * 4;
         self.fstate.ac_quant = VP56_AC_QUANTS[hdr.quant as usize] * 4;
-        self.loop_thr = i16::from(VP56_FILTER_LIMITS[hdr.quant as usize]);
-
+        let new_loop_thr = i16::from(VP56_FILTER_LIMITS[hdr.quant as usize]);
+        if self.loop_thr != new_loop_thr {
+            self.loop_thr = new_loop_thr;
+            vp31_build_lf_tab(&mut self.loop_tab, self.loop_thr);
+        }
         self.last_mbt = VPMBType::InterNoMV;
         for vec in self.top_ctx.iter_mut() {
             for el in vec.iter_mut() {
@@ -1172,7 +1177,7 @@ impl VP56Decoder {
             x + 0,
             y + 0,
             mv,
-            self.loop_thr,
+            &self.loop_tab,
         );
         br.mc_block(
             frm,
@@ -1182,7 +1187,7 @@ impl VP56Decoder {
             x + 8,
             y + 0,
             mv,
-            self.loop_thr,
+            &self.loop_tab,
         );
         br.mc_block(
             frm,
@@ -1192,7 +1197,7 @@ impl VP56Decoder {
             x + 0,
             y + 8,
             mv,
-            self.loop_thr,
+            &self.loop_tab,
         );
         br.mc_block(
             frm,
@@ -1202,7 +1207,7 @@ impl VP56Decoder {
             x + 8,
             y + 8,
             mv,
-            self.loop_thr,
+            &self.loop_tab,
         );
         if !alpha {
             let x = self.fstate.mb_x * 8;
@@ -1215,9 +1220,9 @@ impl VP56Decoder {
                 x,
                 y,
                 mv,
-                self.loop_thr,
+                &self.loop_tab,
             );
-            br.mc_block(frm, self.mc_buf.clone(), src, 2, x, y, mv, self.loop_thr);
+            br.mc_block(frm, self.mc_buf.clone(), src, 2, x, y, mv,  &self.loop_tab);
         }
     }
     fn do_fourmv(
@@ -1240,7 +1245,7 @@ impl VP56Decoder {
                 x + (blk_no & 1) * 8,
                 y + (blk_no & 2) * 4,
                 mvs[blk_no],
-                self.loop_thr,
+                &self.loop_tab,
             );
         }
         if !alpha {
@@ -1259,9 +1264,9 @@ impl VP56Decoder {
                 x,
                 y,
                 mv,
-                self.loop_thr,
+                &self.loop_tab,
             );
-            br.mc_block(frm, self.mc_buf.clone(), src, 2, x, y, mv, self.loop_thr);
+            br.mc_block(frm, self.mc_buf.clone(), src, 2, x, y, mv, &self.loop_tab);
         }
     }
     fn predict_dc(&mut self, mb_type: VPMBType, _mb_pos: usize, blk_no: usize, _alpha: bool) {

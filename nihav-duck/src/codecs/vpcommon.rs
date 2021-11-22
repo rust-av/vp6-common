@@ -476,29 +476,37 @@ pub fn vp_add_block_dc(
     }
 }
 
+pub fn vp31_build_lf_tab(tab: &mut [i8; 256], loop_str: i16) {
+    for diff in -128i16..128i16 {
+        tab[(diff + 128) as usize] = if diff.abs() >= 2 * loop_str {
+            0
+        } else if diff.abs() >= loop_str {
+            if diff < 0 {
+                -diff - 2 * loop_str
+            } else {
+                -diff + 2 * loop_str
+            }
+        } else {
+            diff
+        } as i8;
+    }
+}
+
 pub fn vp31_loop_filter(
     data: &mut [u8],
     mut off: usize,
     step: usize,
     stride: usize,
     len: usize,
-    loop_str: i16,
+    loop_tab: &[i8; 256],
 ) {
     for _ in 0..len {
         let a = i16::from(data[off - step * 2]);
         let b = i16::from(data[off - step]);
         let c = i16::from(data[off]);
         let d = i16::from(data[off + step]);
-        let mut diff = ((a - d) + 3 * (c - b) + 4) >> 3;
-        if diff.abs() >= 2 * loop_str {
-            diff = 0;
-        } else if diff.abs() >= loop_str {
-            if diff < 0 {
-                diff = -diff - 2 * loop_str;
-            } else {
-                diff = -diff + 2 * loop_str;
-            }
-        }
+        let diff = ((a - d) + 3 * (c - b) + 4) >> 3;
+        let diff = i16::from(loop_tab[(diff + 128) as usize]);
         if diff != 0 {
             data[off - step] = (b + diff).max(0).min(255) as u8;
             data[off] = (c - diff).max(0).min(255) as u8;

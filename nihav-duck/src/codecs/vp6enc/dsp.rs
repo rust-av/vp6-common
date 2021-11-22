@@ -472,7 +472,7 @@ pub struct MVEstimator {
     mv_thresh: u8,
     var_thresh: u16,
     filter_alpha: usize,
-    loop_thr: i16,
+    loop_tab: [i8; 256],
     mv_range: i16,
     pub count: usize,
     pub count2: usize,
@@ -485,6 +485,8 @@ impl MVEstimator {
         loop_thr: i16,
         mv_range: i16,
     ) -> Self {
+        let mut loop_tab = [0; 256];
+        vp31_build_lf_tab(&mut loop_tab, loop_thr);
         Self {
             ref_blk: [[0; 64]; 6],
             ref_frame,
@@ -495,7 +497,7 @@ impl MVEstimator {
             mv_thresh: 0,
             var_thresh: 0,
             filter_alpha: 0,
-            loop_thr,
+            loop_tab,
             mv_range,
             count: 0,
             count2: 0,
@@ -520,12 +522,12 @@ impl MVEstimator {
         if (msx & 7) != 0 {
             let foff = (8 - (sx & 7)) as usize;
             let off = 2 + foff;
-            vp31_loop_filter(tmp_blk, off, 1, 16, 12, self.loop_thr);
+            vp31_loop_filter(tmp_blk, off, 1, 16, 12, &self.loop_tab);
         }
         if (msy & 7) != 0 {
             let foff = (8 - (sy & 7)) as usize;
             let off = (2 + foff) * 16;
-            vp31_loop_filter(tmp_blk, off, 16, 1, 12, self.loop_thr);
+            vp31_loop_filter(tmp_blk, off, 16, 1, 12, &self.loop_tab);
         }
         let copy_mode = (mx == 0) && (my == 0);
         let mut bicubic = !copy_mode && is_luma && self.bicubic;
