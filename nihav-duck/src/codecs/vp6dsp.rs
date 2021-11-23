@@ -87,20 +87,18 @@ pub fn mc_bilinear<const SOFF: usize, const SSTRIDE: usize>(
     assert!(src.len() >= soff + SSTRIDE * 8);
 
     if my == 0 {
-        //TODO: we must also use the remainder here
-        for dline in dst.chunks_exact_mut(dstride).take(8) {
+        for l in (0..dst.len()).step_by(dstride).take(8) {
             let src_data = &src[soff..(soff + 9)];
             for i in 0..8 {
-                dline[i] = mc_filter!(bilinear; src_data[i], src_data[i + 1], mx);
+                dst[l + i] = mc_filter!(bilinear; src_data[i], src_data[i + 1], mx);
             }
             soff += SSTRIDE;
         }
     } else if mx == 0 {
-        //TODO: we must also use the remainder here
-        for dline in dst.chunks_exact_mut(dstride).take(8) {
+        for l in (0..dst.len()).step_by(dstride).take(8) {
             let src_data = &src[soff..(soff + 8 + SSTRIDE)];
             for i in 0..8 {
-                dline[i] = mc_filter!(bilinear; src_data[i], src_data[i + SSTRIDE], my);
+                dst[l + i] = mc_filter!(bilinear; src_data[i], src_data[i + SSTRIDE], my);
             }
             soff += SSTRIDE;
         }
@@ -115,12 +113,11 @@ pub fn mc_bilinear<const SOFF: usize, const SSTRIDE: usize>(
             soff += SSTRIDE;
         }
 
-        //TODO: we must also use the remainder here
-        for dline in dst.chunks_exact_mut(dstride).take(8) {
+        for l in (0..dst.len()).step_by(dstride).take(8) {
             let src_data = &src[soff..(soff + 9)];
             for i in 0..8 {
                 let cur = mc_filter!(bilinear; src_data[i], src_data[i + 1], mx);
-                dline[i] = mc_filter!(bilinear; tmp[i], cur, my);
+                dst[l + i] = mc_filter!(bilinear; tmp[i], cur, my);
                 tmp[i] = cur;
             }
             soff += SSTRIDE;
