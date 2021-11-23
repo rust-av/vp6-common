@@ -5,7 +5,6 @@ use nihav_core::muxers::*;
 use nihav_registry::detect;
 use nihav_core::io::byteio::ByteReader;
 use nihav_allstuff::*;
-use crate::null::*;
 
 pub struct FullRegister {
     pub dmx_reg:    RegisteredDemuxers,
@@ -28,10 +27,8 @@ impl FullRegister {
         nihav_register_all_packetisers(&mut pkt_reg);
         let mut enc_reg = RegisteredEncoders::new();
         nihav_register_all_encoders(&mut enc_reg);
-        enc_reg.add_encoder(NULL_ENCODER);
         let mut mux_reg = RegisteredMuxers::new();
         nihav_register_all_muxers(&mut mux_reg);
-        mux_reg.add_muxer(NULL_MUXER);
         Self { dmx_reg, rdmx_reg, pkt_reg, dec_reg, enc_reg, mux_reg }
     }
 }

@@ -5,20 +5,13 @@ extern crate nihav_registry;
 
 use nihav_core::codecs::*;
 use nihav_core::demuxers::*;
-use nihav_core::frame::*;
 use nihav_core::io::byteio::{ByteReader, FileReader};
-use nihav_core::options::*;
-use nihav_core::scale::*;
-use nihav_core::soundcvt::*;
-use nihav_registry::detect;
-use nihav_registry::register;
 use std::env;
 use std::fs::File;
-use std::io::{BufReader, Write};
+use std::io::{BufReader};
 
 mod demux;
 use crate::demux::*;
-mod null;
 
 #[derive(Default)]
 #[allow(clippy::type_complexity)]
