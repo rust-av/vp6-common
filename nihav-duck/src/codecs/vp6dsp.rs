@@ -89,6 +89,8 @@ pub fn mc_bilinear<const SOFF: usize, const SSTRIDE: usize>(
     if my == 0 {
         for dline in dst.chunks_mut(dstride).take(8) {
             let src_data = &src[soff..(soff + 9)];
+            let _ = dline[7];
+            let _ = src_data[8];
             for i in 0..8 {
                 dline[i] = mc_filter!(bilinear; src_data[i], src_data[i + 1], mx);
             }
@@ -97,6 +99,8 @@ pub fn mc_bilinear<const SOFF: usize, const SSTRIDE: usize>(
     } else if mx == 0 {
         for dline in dst.chunks_mut(dstride).take(8) {
             let src_data = &src[soff..(soff + 8 + SSTRIDE)];
+            let _ = dline[7];
+            let _ = src_data[8];
             for i in 0..8 {
                 dline[i] = mc_filter!(bilinear; src_data[i], src_data[i + SSTRIDE], my);
             }
@@ -115,6 +119,8 @@ pub fn mc_bilinear<const SOFF: usize, const SSTRIDE: usize>(
 
         for dline in dst.chunks_mut(dstride).take(8) {
             let src_data = &src[soff..(soff + 9)];
+            let _ = dline[7];
+            let _ = src_data[8];
             for i in 0..8 {
                 let cur = mc_filter!(bilinear; src_data[i], src_data[i + 1], mx);
                 dline[i] = mc_filter!(bilinear; tmp[i], cur, my);
