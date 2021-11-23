@@ -30,6 +30,42 @@ jobs:
       run: |
         cargo clippy --all-targets --tests --benches -- -D warnings
 
+  decode-benchmark:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+
+    - name: Run decode benchmark
+      run: |
+        cargo bench -q -- decode
+
+  encode-benchmark:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+
+    - name: Run decode benchmark
+      run: |
+        cargo bench -q -- encode
+
   test:
 
     strategy:
