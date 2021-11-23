@@ -13,6 +13,7 @@ features = ["dsp_window", "blockdsp"]
 
 [dev-dependencies]
 nihav_commonfmt = { path = "../nihav-commonfmt", default-features=false, features = ["all_demuxers", "all_muxers"] }
+criterion = "0.3"
 
 [features]
 default = ["all_decoders", "all_encoders", "all_demuxers"]
@@ -33,3 +34,11 @@ all_demuxers = ["demuxer_ivf"]
 demuxers = []
 
 demuxer_ivf = ["demuxers"]
+
+[[bench]]
+name = "decode"
+harness = false
+
+[[bench]]
+name = "encode"
+harness = false
